@@ -1,0 +1,155 @@
+\documentclass[10pt, conference]{IEEEtran}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[pdftex]{graphicx}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{subfigure}
+\usepackage{multirow}
+\usepackage[space]{cite}
+\usepackage{siunitx}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{microtype}
+\usepackage{latexsym}
+\usepackage{textcomp}
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{pictexwd}
+\usepackage[absolute]{textpos}
+\usepackage[htt]{hyphenat}
+
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.11}
+
+\sisetup{group-separator = {,}, group-digits = true}
+\newcommand\sius[1]{\num[group-separator = {,}]{#1}\si{~\micro\second}}
+\newcommand\sims[1]{\num[group-separator = {,}]{#1}\si{~\si{\milli\second}}}
+\newcommand\sins[1]{\num[group-separator = {,}]{#1}\si{~\nano\second}}
+
+\newcommand\GG[1]{$\Diamond$\footnote{Giovani: {#1}}}
+\newcommand\LC[1]{\textleaf\footnote{Lucas: {#1}}}
+
+%\interfootnotelinepenalty=500
+
+\lstset{keywordstyle=\bfseries, flexiblecolumns=true, inputencoding=latin1}
+\lstloadlanguages{[ANSI]C++}
+\lstdefinestyle{prg} {basicstyle=\scriptsize, lineskip=-0.2ex, showspaces=false,breaklines=true,showstringspaces=false,numbers=left,numbersep=-7pt,frame=single,stepnumber=1}
+
+\newcommand{\prg}[3][ht!]{
+  \begin{figure}[#1]
+      \lstinputlisting[language=C++,style=prg,basicstyle=\scriptsize]{fig/#2.cc}
+    \caption{#3\label{prg:#2}}
+  \end{figure}
+}
+
+\newcommand{\tab}[3][ph]{
+  \begin{table}[#1]
+    {\centering\small\textsf{\input{fig/#2.tab}}\par}
+    \caption{#3}
+  \label{tab:#2}
+  \end{table}
+}
+
+\newcommand{\fig}[4][ht!]{
+  \begin{figure}[#1]
+    {\centering{\includegraphics[#4]{fig/#2}}\par}
+    \caption{#3}
+    \label{fig:#2}
+  \end{figure}
+}
+
+\newcommand{\Fig}[4][!htb]{
+  \begin{figure*}[#1]
+    {\centering{\includegraphics[#4]{fig/#2}}\par}
+    \caption{#3}
+    \label{fig:#2}
+  \end{figure*}
+}
+
+\newcommand{\Tau}{\mathrm{T}}
+\newcommand{\ms}{\textmu{}s}
+
+\newcommand{\AlgInput}{\textbf{Input: }}
+\newcommand{\AlgOuput}{\textbf{Output: }}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{definition}[theorem]{Definition}
+
+
+\makeatletter
+\renewcommand{\ALG@beginalgorithmic}{\scriptsize}
+\makeatother
+
+\IEEEoverridecommandlockouts
+
+\begin{document}
+%
+% paper title
+% can use linebreaks \\ within to get better formatting as desired
+\title{On the Design and 
+Implementation of Uniprocessor
+Real-Time Resource Access 
+Protocols\IEEEauthorrefmark{1}\thanks{\IEEEauthorrefmark{1}Work 
+funded by CNPq/PIBIC.}}
+
+% author names and affiliations
+% use a multiple column layout for up to three different
+% affiliations
+\author{\IEEEauthorblockN{Lucas Pires Camargo}
+\IEEEauthorblockA{Software/Hardware Integration Lab\\
+Federal University of Santa Catarina\\
+Joinville, Santa Catarina, Brasil\\
+Email: camargo@lisha.ufsc.br}
+\and
+\IEEEauthorblockA{Giovani Gracioli\\
+Software/Hardware Integration Labb\\
+Federal University of Santa Catarina\\
+Joinville, Santa Catarina, Brasil\\
+Email: giovani@lisha.ufsc.br}}
+
+\maketitle
+\thispagestyle{plain}
+\pagestyle{plain}
+
+\begin{abstract}
+Real-time operating systems (RTOS) should support resource access protocols 
+to bound the maximum delay incurred by priority inversions. The implementation 
+of such protocols must be lightweight, because its performance affects the 
+system schedulability. In this paper, we present an object-oriented design of 
+real-time resource access protocols for uniprocessors aiming at reducing the 
+run-time overhead and increasing code re-usability. We implement the proposed 
+design in an RTOS and measure the memory footprint and run-time overhead of the 
+implementation. By applying the obtained overhead into the 
+schedulability of several generated task sets and four protocols, our results 
+indicate that proper implementation of resource access protocols has a small 
+impact on the schedulability of real-time tasks.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Real-time resource access protocols, real-time operating systems, 
+priority ceiling protocol, priority inheritance protocol, stack resource 
+policy
+\end{IEEEkeywords}
+
+\IEEEpeerreviewmaketitle
+
+\input{files/intro.tex}
+\input{files/back.tex}
+\input{files/design.tex}
+\input{files/evaluation.tex}
+\input{files/related.tex}
+\input{files/conclusion.tex}
+
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+% that's all folks
+\end{document}
+
+

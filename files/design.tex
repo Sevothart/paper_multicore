@@ -1,0 +1,132 @@
+\section{Design and Implementation of Resource Access Protocols}
+\label{sec:des}
+
+Figure~\ref{fig:uml_class_sync} presents an overview of the proposed software 
+design for the resource access protocols through a UML class diagram. To 
+achieve this final design, we used the Application-Driven Embedded System 
+Design (ADESD)~\cite{Froehlich:2001} methodology to capture common 
+characteristics related to the PIP, PCP, IPCP, and SRP protocols. In the 
+resulting design, there are in total eight classes: 
+\texttt{Synchronizer\_Common}, \texttt{Semaphore}, \texttt{Semaphore\_RT}, 
+\texttt{Semaphore\_SRP}, \texttt{Semaphore\_Ceiling}, \texttt{Semaphore\_PCP}, 
+\texttt{Semaphore\_IPCP}, and \texttt{Semaphore\_PIP}. Below, we provide a 
+detailed description of each class.
+
+\Fig{uml_class_sync}{UML class diagram of the synchronization 
+protocols.}{scale=.63}
+
+The base class \texttt{Synchronizer\_Common} offers support for operations 
+common to all synchronization primitives, such as mutexes, semaphores, and 
+condition variables. These operations include, for instance, atomic increment 
+and decrement (\emph{finc} and \emph{fdec}), test and set lock (\emph{tsl}), 
+and interrupt enabling/disabling (\emph{begin\_atomic} and \emph{end\_atomic}). 
+The class also implements an interface for common thread operations, such as 
+sleep, wakeup, and wakeup all. These thread operations basically put a thread 
+to sleep into the synchronization queue (the \texttt{\_queue} attribute), 
+wakeup a thread that was sleeping in the queue, and wakeup all threads that 
+were sleeping in the queue. All operations are protected, which means that they 
+are only accessible by subclasses.
+
+The \texttt{Semaphore} class implements the traditional \emph{p} and \emph{v} 
+semaphore operations~\cite{Dijkstra:1968}. The class has an integer 
+(\texttt{\_value}) as attribute, which is used to count the signals issued by 
+the \emph{p} and \emph{v} (decrement and increment, respectively) through the 
+\texttt{fdec} and \texttt{finc} operations implemented in the base class. It 
+also uses the \texttt{sleep}, \texttt{wakeup}, and \texttt{wakeup\_all} 
+operations from the base class.
+
+The \texttt{Semaphore\_RT} class is common to all real-time resource access 
+protocols. It has two attributes, \texttt{\_owner} and \texttt{\_priority} that 
+represent, respectively, the current thread that owners the semaphore 
+(\emph{i.e,} a thread that has entered a critical section through the \emph{p} 
+operation) and the priority of that thread. The class offers public methods to 
+set and get the attributes. Also, it has two protected methods,
+\texttt{current\_thread} and \texttt{next\_thread}, that return the current 
+thread being executed (note that it can be different from the \texttt{\_owner}) 
+and the next thread that is the head of the semaphore's queue. These two 
+operations are required by the PIP, PCP, and IPCP protocols. 
+
+The \texttt{Semaphore\_PIP} class implements the priority inheritance 
+behavior of the PIP protocol. It overwrites the \emph{p} and \emph{v} methods 
+from the \texttt{Semaphore} to include the handling of the priority 
+inheritance.  For the \emph{p} operation, the class first checks whether there 
+is a thread inside the critical section by verifying if \texttt{\_owner} is 
+zero. If so, the calling thread becomes the new semaphore's owner. If not, 
+there is a test to check whether the calling thread priority is greater than 
+the owner's priority. If it is, owner has its priority raised to the calling 
+thread's priority. Then, the \emph{p} operation from the \texttt{Semaphore} is 
+called to conclude the work. This is all done in an atomic state (\emph{i.e.,} 
+interrupts are disabled). For the \emph{v} operation, if there is a semaphore 
+owner, \texttt{Semaphore\_PIP} checks if there is another thread waiting on the 
+Semaphore's queue to enter the critical section. If so, the \texttt{\_owner} 
+and \texttt{\_priority} are updated. If not, \texttt{\_owner} and 
+\texttt{\_priority} receives zero as value. Then, the \emph{v} operation from 
+the \texttt{Semaphore} is called to conclude the work. The instruction within 
+the \emph{v} are also performed with interrupts disabled.
+
+The \texttt{Semaphore\_Ceiling} class is common to all ceiling-based protocols, 
+such as IPCP and PCP. It adds an integer attribute (\texttt{\_ceiling}), which 
+represents the semaphore's ceiling. It also has the set and get methods for the 
+attribute. The \texttt{Semaphore\_PCP} class implements the PCP protocol by 
+overwriting the \emph{p} and \emph{v} methods. The protocol raises the 
+semaphore's owner thread priority to the ceiling whenever there is a call to 
+\emph{p}. If the semaphore has no owner, then the current thread becomes the 
+new owner and the semaphore's priority is set to the thread's priority. After 
+that, the \emph{p} method of the \texttt{Semaphore} is called. The \emph{v} 
+operation reestablishes the owner thread's priority (in case it was raised) and 
+checks whether there is another thread waiting on the semaphore's queue. Then, 
+it calls the \emph{p} method of the \texttt{Semaphore}. 
+
+The \texttt{Semaphore\_IPCP} class implements the IPCP protocol, in a similar 
+way to the \texttt{Semaphore\_PCP} class. The only difference is that the owner 
+priority is raised to the semaphore's ceiling whenever a thread enters the 
+critical section. Also, the owner priority is always reestablished to its 
+original priority whenever it calls \emph{v}.
+
+Finally, the \texttt{Semaphore\_SRP} class implements the Stack Resource Policy 
+(SRP) protocol. It is statically configured (at compile time) to support a 
+given number of tasks per resource, and also a set number of resources in the 
+whole system. Every instance has a resource ceiling attribute 
+(\texttt{\_ceiling}), which corresponds to the highest preemption level amongst 
+the tasks that would block if accessing the resource. Whenever the semaphore 
+value changes, the resource recalculates its resource ceiling and also the 
+system ceiling. 
+
+To make this dynamic accounting possible, the semaphore stores a list of tasks 
+that access the resource, and the maximum number of resource units the task can 
+hold at once (\texttt{\_prio\_levels} attribute). The system also needs to keep 
+track of all existing SRP resources, and does so in a static array attribute 
+(\texttt{\_resources}). 
+
+\subsection{Implementation in an RTOS}
+
+We have implemented the described protocols design in the Embedded Parallel 
+Operating System (EPOS)~\cite{Froehlich:2001, epos}. EPOS is a
+multi-platform, object-oriented, component-based, embedded system framework
+implemented in C++. EPOS is the first open-source RTOS designed from scratch
+that supports partitioned, global, and clustered versions of EDF, RM, LLF, and
+DM scheduling policies~\cite{Gracioli:2013a}. A complete review of the real-time
+support on EPOS can be found in~\cite{Gracioli:2013a}. We choose EPOS, because 
+it supports static and dynamic scheduling and it is written in an 
+object-oriented language. Thus, it is compatible with our proposed design. 
+Moreover, EPOS until this work did not have a complete support for real-time 
+resource access protocols. We believe that the proposed design can be replicated 
+in any object-oriented RTOS written in C++ and that has EDF and RM schedulers.
+
+Figure~\ref{fig:sequence_semaphore_pcp_p} shows the implementation of the 
+\texttt{Semaphore\_PCP} \emph{p} operation. It uses the \emph{begin\_atomic} 
+method from the \texttt{Synchronizer\_Common} to disable interrupts. Then, it 
+uses the methods from \texttt{Semaphore\_RT} class to get the current running 
+thread and modify or not the semaphore's ceiling. The \texttt{RT\_Thread} class 
+represents a running thread and it provides two \emph{priority} methods to 
+change and to get the real-time thread's priority. It is clear that code reuse 
+is achieved by the inherent use of the class hierarchy. For instance, the 
+\texttt{Semaphore} \emph{p} operation is called through the 
+\texttt{Semaphore\_RT} class, in the operation number 15 in the sequence diagram 
+class.  The other protocols operations use the same strategy to allow maximum 
+code re-usability. 
+
+\fig{sequence_semaphore_pcp_p}{UML sequence diagram of the 
+\texttt{Semaphore\_PCP} \emph{p} operation.}{width=\columnwidth}
+
+%Show an example of a schedule (EPOS TRACE VIEW)

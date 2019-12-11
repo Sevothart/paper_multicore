@@ -1,0 +1,109 @@
+EPOS Semaphores Accounting
+
+LINES OF CODE
+
+Plain Semaphore:
+header: 10
+impl: 10
+total: 20
+
+
+RT: (abstraction)
+header: 24
+impl: 0
+total: 24
+
+Ceiling: (abstraction)
+header: 9
+impl: 0
+total: 9
+
+
+PIP: 
+header: 8
+impl: 16 + 19
+total: 43
+
+PCP:
+header: 8
+impl: 12 + 17
+total: 37
+
+IPCP:
+header: 8
+impl: 10 + 18
+total: 36
+
+SRP:
+header: 78
+impl: 4 + 4 + 3 + 7
+total: 96
+
+
+OBJECT MEMORY USAGE (bytes)
+
+Plain Semaphore: 16
+    value: 4
+    queue: 12
+        size: 4
+        head_ptr: 4
+        tail_ptr: 4
+
+PIP: 24
+    base: 16
+    owner: 4
+    owner_priority: 4
+    
+PCP: 28
+    base: 16
+    owner: 4
+    owner_priority: 4
+    ceiling: 4
+    
+IPCP: 28
+    base: 16
+    owner: 4
+    owner_priority: 4
+    ceiling: 4
+
+SRP: 28
+    base: 16
+    ceiling: 4
+    priority: 4
+    max_preempt_level: 4
+
+STATIC MEMORY USAGE (bytes)
+
+SRP: 68
+    system_ceiling: 4
+    global_resource_list: 64 (4*MAX_RESOURCES)
+    
+
+CODE MEMORY USAGE (bytes)
+
+Plain Semaphore
+p: 68
+v: 64
+total: 132
+
+PIP
+p: 72
+v: 68
+total: 140
+
+PCP
+p: 56
+v: 88
+total: 144
+
+IPCP
+p: 56
+v: 88
+total: 144
+
+SRP
+p: 156
+v: 156
+eligibility function: 52
+default ceiling (constant): 4
+total: 368

@@ -1,0 +1,18 @@
+\section{Conclusion}
+\label{sec:conc}
+
+This paper presented an object-oriented design of four uniprocessor real-time 
+resource protocols (PIP, PCP, IPCP, and SRP). We have implemented the proposed 
+design in an RTOS and measured the memory footprint and run-time overhead of 
+the implementation. By compiling and running our implementation in a 
+microcontrolled platform, we proved that it allows small memory footprint (from 
+296 to 660 bytes, depending on the protocol) and run-time overhead (less than 
+20~\si{\micro\second} for 20 tasks). Moreover, we used the run-time overhead to 
+analyze how it affects the system schedulability and proved that efficient 
+RTOS implementation of uniprocessor resource access protocols has few impact on 
+the system schedulability. 
+
+As future work, we plan to extend the design to support multiprocessor 
+resource access protocols, such as MPCP and MSRP, then implement these 
+protocols in EPOS and repeat the schedulability analysis considering the 
+run-time overhead.
