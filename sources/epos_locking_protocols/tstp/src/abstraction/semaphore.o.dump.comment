@@ -1,0 +1,29 @@
+
+CODE MEMORY USAGE
+
+Plain Semaphore
+p: 68
+v: 64
+total: 132
+
+PIP
+p: 72
+v: 68
+total: 140
+
+PCP
+p: 56
+v: 88
+total: 144
+
+IPCP
+p: 56
+v: 88
+total: 144
+
+SRP
+p: 156
+v: 156
+eligibility function: 52
+system ceiling (initializer): 4
+total: 368
