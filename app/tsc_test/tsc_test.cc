@@ -1,13 +1,5 @@
-#include <time.h>
-#include <machine/timer.h>
-#include <architecture/armv7/tsc.h>
-#include <machine/cortex/engine/cortex_a53/bcm_arm_timer.h>
-#include <machine/cortex/engine/cortex_a53/bcm_mailbox.h>
-#include <machine/cortex/raspberry_pi3/raspberry_pi3_ic.h>
 #include <utility/ostream.h>
-
-#include <machine/cortex/cortex_ic.h>
-#include <machine/ic.h>
+#include <machine/cortex/raspberry_pi3/raspberry_pi3_gpio.h>
 
 using namespace EPOS;
 OStream cout;
@@ -15,9 +7,11 @@ OStream cout;
 long int z3 = 1000; 
 long int z6 = 1000000;
 
-int main() {    
-    cout << "Timer benchmark start." << endl;
-    while(1) {}
+int main() {  
+
+    cout << "1" << endl;
+    GPIO_Engine * led = new GPIO_Engine( GPIO_Common::B, 7, GPIO_Common::OUT, GPIO_Common::DOWN, GPIO_Common::NONE);
+    cout << "2" << endl;
     
     /*
     long unsigned int start[10];
@@ -42,6 +36,5 @@ int main() {
         cout << "ARM" << i << ": " << end[i] - start[i] << "ns" << endl;
     }
     */
-    cout << "The end!" << endl;
     return 0;
 }

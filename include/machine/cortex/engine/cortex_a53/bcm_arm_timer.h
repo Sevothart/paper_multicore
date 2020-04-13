@@ -5,11 +5,8 @@
 
 #include <architecture/cpu.h>
 
-#include <utility/handler.h>
-#include <machine/cortex/raspberry_pi3/raspberry_pi3_ic.h>
+#include <machine/cortex/raspberry_pi3/raspberry_pi3_gpio.h>
 #include <machine/cortex/cortex_ic.h>
-#include <machine/cortex/cortex_gpio.h>
-#include <machine/ic.h>
 
 #define __common_only__
 #include <machine/rtc.h>
@@ -66,7 +63,7 @@ public:
 public:
     //b2f8
     static void handler(Interrupt_Id a){
-       kout << "Handler called!" << endl;
+       kout << "." << endl;
     }
 
     void config(unsigned int unit, const Count & count) {
@@ -77,8 +74,8 @@ public:
         timer(IRQ_CLR) = 0;
         timer(CONTROL) = TIMER_EN | INT_EN | PRE_SCALE | CNTR_SIZE | FREE_CNTR; //0x3e00a2
 
-        IC::enable( IC::INT_ARM_TIMER );
-        IC::int_vector( IC::INT_ARM_TIMER, reinterpret_cast<Interrupt_Handler>(&handler));
+        // IC::enable( IC::INT_ARM_TIMER );
+        // IC::int_vector( IC::INT_ARM_TIMER, reinterpret_cast<Interrupt_Handler>(&handler) );
     }
 
     Count count() {
@@ -90,7 +87,7 @@ public:
 
     void eoi(IC::Interrupt_Id id) {
         timer(IRQ_CLR) = 0;
-        // ASM("dsb \t\n isb");
+        /* ASM("dsb \t\n isb"); */
         while (timer(RAW_IRQ));
     }
 
@@ -114,10 +111,10 @@ private:
     config(unit, ticks): Handler will be called every ticks/frequency
     Ex: 5000000 in   1MHz -> called every 5s
     Ex:  250000 in   1MHz -> called every 0.25s
-    Ex: 5000000 in 250MHz -> called every 0.02s || 0.04s
+    Ex: 5000000 in 250MHz -> called every 0.02s
     Ex:  250000 in 250MHz -> called every 0.001s
     */
-    static void init() { arm_timer()->config(1, 5000000); }
+    static void init() { /* arm_timer()->config(1, 5000000); */ }
 };
 
 __END_SYS

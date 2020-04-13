@@ -118,7 +118,7 @@ template<> struct Traits<Thread>: public Traits<void>
     static const bool simulate_capacity = false;
     static const bool trace_idle = hysterically_debugged;
 
-    typedef Scheduling_Criteria::Priority Criterion;
+    typedef Scheduling_Criteria::CPU_Affinity Criterion;
     static const unsigned int QUANTUM = 10000; // us
 };
 

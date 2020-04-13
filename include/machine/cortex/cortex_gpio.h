@@ -27,7 +27,7 @@ public:
     GPIO(const Port & port, const Pin & pin, const Direction & dir, const Pull & pull = UP, const Edge & int_edge = NONE)
     : Engine(port, pin, dir, pull, int_edge), _port(port), _pin(pin) {
         if(int_edge != NONE) {
-            // _gpios[_port][_pin] = this;
+            _gpios[_port][_pin] = this;
             IC::Interrupt_Id int_id = IC::INT_GPIOA + _port;
             IC::disable(int_id);
             Engine::int_disable();
@@ -43,7 +43,7 @@ public:
 
     virtual ~GPIO() {
         int_disable();
-        // _gpios[_port][_pin] = 0;
+        _gpios[_port][_pin] = 0;
     }
 
     using Engine::get;
@@ -64,7 +64,7 @@ private:
     Port _port;
     Pin _pin;
 
-    // static GPIO * _gpios[PORTS][8];
+    static GPIO * _gpios[PORTS][8];
 };
 
 __END_SYS

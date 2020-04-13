@@ -106,6 +106,7 @@ public:
         ra = uart(GPFSEL1);
         ra &= ~(GPIO_PIN_14);       // GPIO 14
         ra |= ALT_FUNC_5_PIN14;     // alternate function 5
+        
         ra &= ~(GPIO_PIN_15);       // GPIO 15
         ra |= ALT_FUNC_5_PIN15;     // alternate function 5
         
