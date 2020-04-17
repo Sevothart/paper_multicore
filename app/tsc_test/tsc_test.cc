@@ -9,9 +9,8 @@ long int z6 = 1000000;
 
 int main() {  
 
-    cout << "1" << endl;
     GPIO_Engine * led = new GPIO_Engine( GPIO_Common::B, 7, GPIO_Common::OUT, GPIO_Common::DOWN, GPIO_Common::NONE);
-    cout << "2" << endl;
+    while(1){}
     
     /*
     long unsigned int start[10];

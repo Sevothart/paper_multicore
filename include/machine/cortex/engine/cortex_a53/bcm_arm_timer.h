@@ -74,8 +74,8 @@ public:
         timer(IRQ_CLR) = 0;
         timer(CONTROL) = TIMER_EN | INT_EN | PRE_SCALE | CNTR_SIZE | FREE_CNTR; //0x3e00a2
 
-        // IC::enable( IC::INT_ARM_TIMER );
-        // IC::int_vector( IC::INT_ARM_TIMER, reinterpret_cast<Interrupt_Handler>(&handler) );
+        IC::enable( IC::INT_ARM_TIMER );
+        IC::int_vector( IC::INT_ARM_TIMER, reinterpret_cast<Interrupt_Handler>(&handler) );
     }
 
     Count count() {
@@ -114,7 +114,7 @@ private:
     Ex: 5000000 in 250MHz -> called every 0.02s
     Ex:  250000 in 250MHz -> called every 0.001s
     */
-    static void init() { /* arm_timer()->config(1, 5000000); */ }
+    static void init() { arm_timer()->config(1, 5000000); }
 };
 
 __END_SYS

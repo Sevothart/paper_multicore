@@ -20,7 +20,7 @@ struct Memory_Map: public Cortex_Memory_Map
         MBOX_BASE               = 0x3f00b800,
         // ARM_MBOX0               = 0x3f00b880, // should we create this? the ioctrl (MBOX 0) is mapped over this address
         RAND_BASE               = 0x3f104000,
-        GPIO_BASE               = 0x3f200000, // Shouldnt be 0x7e20 0000 (?)
+        GPIO_BASE               = 0x3f200000,
         UART_BASE               = 0x3f201000, // PrimeCell PL011 UART
         SD0_BASE                = 0x3f202000, // Custom sdhci controller
         AUX_BASE                = 0x3f215000, // mini UART + 2 x SPI master

@@ -7,6 +7,10 @@
 #include <architecture/cpu.h>
 #include <machine/ic.h>
 
+#define GPIO_SET *(gpio+7)              // sets   bits which are 1 ignores bits which are 0
+#define GPIO_CLR *(gpio+10)             // clears bits which are 1 ignores bits which are 0
+#define GET_GPIO(g) (*(gpio+13)&(1<<g)) // 0 if LOW, (1<<g) if HIGH
+
 __BEGIN_SYS
 
 class GPIO_Engine: public GPIO_Common
@@ -58,93 +62,91 @@ private:
         GPPUDCLK1 = 0x0009C
     };
 
-    // Function Selector Helper
-    // From 0 to 9 -> start-bits: 0 3 6 9 12 15 18 21 24 27
+    // Function Select Values
     enum {
-        FSEL_IN   = 0b000, //GPIO pin n has input
-        FSEL_OUT  = 0b001, //GPIO pin n has output
-        FSEL_ALT0 = 0b100, //GPIO pin n takes alternate function 0
-        FSEL_ALT1 = 0b101, //GPIO pin n takes alternate function 1
-        FSEL_ALT2 = 0b110, //GPIO pin n takes alternate function 2
-        FSEL_ALT3 = 0b111, //GPIO pin n takes alternate function 3
-        FSEL_ALT4 = 0b011, //GPIO pin n takes alternate function 4
-        FSEL_ALT5 = 0b010  //GPIO pin n takes alternate function 5
+        GPFSEL_IN   = 0,
+        GPFSEL_OUT  = 1,	 
+        GPFSEL_ALT0 = 4,	 
+        GPFSEL_ALT1 = 5,	 
+        GPFSEL_ALT2 = 6,	 
+        GPFSEL_ALT3 = 7,	 
+        GPFSEL_ALT4 = 3,	 
+        GPFSEL_ALT5 = 2
     };
 
-    // Pull helper
+    // Pull-up/down Enable Values
     enum {
-        DISABLE     = 0,
-        ENABLE_DOWN = 1,
-        ENABLE_UP   = 2,
-        RESERVED    = 3
+        GPPUD_NONE  = 0,	 
+        GPPUD_DOWN  = 1,	 
+        GPPUD_UP    = 2
+    };
+
+    // Masks
+    enum {
+        GPFSEL_MASK             = 7,
+        GPPUD_MASK              = 3,
+        GP_SET_CLEAR_LEV_MASK   = 1
     };
 
 public:
     /* Ports[A,F] Pins[0,9] */
     GPIO_Engine(const Port & port, const Pin & pin, const Direction & dir, const Pull & p, const Edge & int_edge)
     {
-
-        kout << "1.1: Definindo atributos privados" << endl;
         _port = GPFSEL0 + (4 * port);   // Get the FSEL port adress
         _pin = 3 * pin;                 // Represent the bit that's used to write on direction and select_pin_function
         _mask = (10 * port) + pin;      // Represents the bit_mask from 0 to 53, used on restant methods
 
-        kout << "1.2: Reading initial state" << endl;
-        get();
-
-        kout << "1.3: Setting" << endl;
         direction( dir );
-
-        kout << "1.4: Setting function selector" << endl;
-        select_pin_function( FSEL_ALT0 );
-
-        kout << "1.5: Setting pull" << endl;
-        pull();
-
-        kout << "1.6: Setting value" << endl;
+        select_pin_function( GPFSEL_ALT0 );
+        pull( p );
         set();
-
-        kout << "1.7: Reading current value" << endl;
-        get();
+        
+        kout << "\t" << get() << endl;
 
     }
 
-    void get(){
-        for(int i = 0; i<54; i++){
-            kout << i << ": " <<  gpio(GPLEV0 + i) << endl;
-        }
-        // return gpio(GPLEV0 + _mask);
+    bool get(){
+        return gpio(GPLEV0 + _mask);
     }
 
     void set() {
-        gpio(GPSET0) = (1 << _mask);
+        gpio(GPSET0) = 1 << _mask;
     }
 
     void clear() {
-        gpio(GPCLR0) = (1 << _mask);
+        gpio(GPCLR0) = 1 << _mask;
     }
 
     void direction(const Direction & dir) {
         _direction = dir;
 
-        if( dir == GPIO_Common::IN )
-            gpio(_port) |= (FSEL_IN  << _pin);
-        if( dir == GPIO_Common::OUT )
-            gpio(_port) |= (FSEL_OUT << _pin);
-        else
-            gpio(_port) = (FSEL_IN << _pin) | (FSEL_OUT << _pin);
+        if( dir == GPIO_Common::IN ){
+            gpio(_port) &= ~(GPFSEL_MASK << _mask);
+            gpio(_port) |= (GPFSEL_IN << _mask);
+        }
+        if( dir == GPIO_Common::OUT ) {
+            gpio(_port) &= ~(GPFSEL_MASK << _mask);
+            gpio(_port) |= (GPFSEL_IN << _mask);
+            gpio(_port) |= (GPFSEL_OUT << _mask);
+        }
     }
 
     void select_pin_function(const int &func){
-        gpio(_port) |= (func << _pin);
+        gpio(_port) |= (func << _mask);
     }
     
-    void pull(/*const Pin & mask, const Pull & p*/){
-        gpio(GPPUD) = 0b01;
+    void pull( const Pull & p ){
+
+        if ( p==Pull::DOWN )
+            gpio(GPPUD) = GPPUD_DOWN;
+
         for(int i = 0; i < 150; i++) asm volatile ("nop"); // 150 cycles to synchronize
         gpio(GPPUDCLK0) = (1 << _mask);
         for(int i = 0; i < 150; i++) asm volatile ("nop"); // 150 cycles to synchronize
-        gpio(GPPUDCLK0) = 0;                               // flush GPIO setup
+
+        /* flush GPIO setup */
+        // gpio(GPPUD) = 0;
+        gpio(GPPUDCLK0) = 0;                               
     }
 
     void int_enable(){}
