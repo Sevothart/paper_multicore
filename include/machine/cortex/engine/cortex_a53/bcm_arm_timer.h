@@ -114,7 +114,7 @@ private:
     Ex: 5000000 in 250MHz -> called every 0.02s
     Ex:  250000 in 250MHz -> called every 0.001s
     */
-    static void init() { arm_timer()->config(1, 5000000); }
+    static void init() { /*arm_timer()->config(1, 5000000);*/ }
 };
 
 __END_SYS

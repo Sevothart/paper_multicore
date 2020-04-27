@@ -30,7 +30,7 @@ private:
     */
 
     // Registers offset from BASE
-    enum {                    // Description
+    enum {
         GPFSEL0   = 0x00000,    // Function Select: Port A
         GPFSEL1   = 0x00004,    // Function Select: Port B
         GPFSEL2   = 0x00008,    // Function Select: Port C
@@ -62,7 +62,7 @@ private:
         GPPUDCLK1 = 0x0009C
     };
 
-    // Function Select Values
+    // Function select enable values
     enum {
         GPFSEL_IN   = 0,
         GPFSEL_OUT  = 1,	 
@@ -71,70 +71,62 @@ private:
         GPFSEL_ALT2 = 6,	 
         GPFSEL_ALT3 = 7,	 
         GPFSEL_ALT4 = 3,	 
-        GPFSEL_ALT5 = 2
+        GPFSEL_ALT5 = 2,
+        GPFSEL_MASK = 7
     };
 
-    // Pull-up/down Enable Values
+    // Pull-up and down enable values
     enum {
         GPPUD_NONE  = 0,	 
         GPPUD_DOWN  = 1,	 
-        GPPUD_UP    = 2
-    };
-
-    // Masks
-    enum {
-        GPFSEL_MASK             = 7,
-        GPPUD_MASK              = 3,
-        GP_SET_CLEAR_LEV_MASK   = 1
+        GPPUD_UP    = 2,
+        GPPUD_MASK  = 3
     };
 
 public:
-    /* Ports[A,F] Pins[0,9] */
     GPIO_Engine(const Port & port, const Pin & pin, const Direction & dir, const Pull & p, const Edge & int_edge)
     {
-        _port = GPFSEL0 + (4 * port);   // Get the FSEL port adress
-        _pin = 3 * pin;                 // Represent the bit that's used to write on direction and select_pin_function
-        _mask = (10 * port) + pin;      // Represents the bit_mask from 0 to 53, used on restant methods
-
-        direction( dir );
-        select_pin_function( GPFSEL_ALT0 );
-        pull( p );
-        set();
+        _port = GPFSEL0 + (4 * port);
+        _pin = (10 * port) + pin;
+        _shift = pin * 3; // Each pin has 3 bit length on each port register, so it has to be shifted on afsel and direction operations
         
-        kout << "\t" << get() << endl;
+        direction( dir );
 
+        kout << "\t" << get() << endl;
+        set();
+        kout << "\t" << get() << endl;
+        clear();
+        kout << "\t" << get() << endl;
     }
 
     bool get(){
-        return gpio(GPLEV0 + _mask);
+        return (gpio(GPLEV0) & (1 << _pin)) ? 1 : 0;
     }
 
     void set() {
-        gpio(GPSET0) = 1 << _mask;
+        gpio(GPSET0) = 1 << _pin;
     }
-
+    
     void clear() {
-        gpio(GPCLR0) = 1 << _mask;
+        gpio(GPCLR0) = 1 << _pin;
     }
-
+    
     void direction(const Direction & dir) {
         _direction = dir;
 
-        if( dir == GPIO_Common::IN ){
-            gpio(_port) &= ~(GPFSEL_MASK << _mask);
-            gpio(_port) |= (GPFSEL_IN << _mask);
+        if( _direction == GPIO_Common::IN ) {
+            set_bits( GPFSEL_MASK << _shift, GPFSEL_IN << _shift);
         }
-        if( dir == GPIO_Common::OUT ) {
-            gpio(_port) &= ~(GPFSEL_MASK << _mask);
-            gpio(_port) |= (GPFSEL_IN << _mask);
-            gpio(_port) |= (GPFSEL_OUT << _mask);
+        if( _direction == GPIO_Common::OUT ) {
+            set_bits( GPFSEL_MASK << _shift, GPFSEL_OUT << _shift);
         }
     }
 
-    void select_pin_function(const int &func){
-        gpio(_port) |= (func << _mask);
+    void select_pin_function(const int func){
+        set_bits( GPFSEL_MASK << _shift, func << _shift );
     }
     
+    /*
     void pull( const Pull & p ){
 
         if ( p==Pull::DOWN )
@@ -144,10 +136,11 @@ public:
         gpio(GPPUDCLK0) = (1 << _mask);
         for(int i = 0; i < 150; i++) asm volatile ("nop"); // 150 cycles to synchronize
 
-        /* flush GPIO setup */
+        
         // gpio(GPPUD) = 0;
         gpio(GPPUDCLK0) = 0;                               
     }
+    */
 
     void int_enable(){}
     void int_disable(){}
@@ -160,9 +153,16 @@ public:
 private:
     volatile Reg32 & gpio(unsigned int o) { return reinterpret_cast<volatile Reg32 *>(Memory_Map::GPIO_BASE)[o / sizeof(Reg32)]; }
 
+    void set_bits(Reg32 value, Reg32 mask){
+        unsigned int aux;
+        aux = gpio(_port);
+        aux = (aux & ~mask) | (value & mask);
+        gpio(_port) = aux;
+    }
+
     Port _port;
     Pin _pin;
-    Pin _mask;
+    int _shift;
     Direction _direction;
 };
 
