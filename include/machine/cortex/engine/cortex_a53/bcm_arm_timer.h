@@ -6,7 +6,8 @@
 #include <architecture/cpu.h>
 
 #include <machine/cortex/raspberry_pi3/raspberry_pi3_gpio.h>
-#include <machine/cortex/cortex_ic.h>
+#include <machine/ic.h>
+#include <system/memory_map.h>
 
 #define __common_only__
 #include <machine/rtc.h>
@@ -15,11 +16,18 @@
 
 __BEGIN_SYS
 
+/*
+TODO: Add ARM_Timer to Alarm and Chronometer of the system, instead of TSC.
+
+system/config.h:
+    Should add a macro like this #define __ARM_TIMER_H        __HEADER_ARCH(arm_timer);
+architecture/armv7/cpu_init.cc:
+    Should have a new #ifdef __ARM_TIMER_H that would call init method if Traits<ARM_TIMER>::enabled
+*/
+
 class ARM_Timer : public Timer_Common
 {
     friend class CPU;
-    // This is a hardware object
-    // Use with something like "new (Memory_Map::TIMER1_BASE) ARM_Timer"
 
 private:
     typedef CPU::Reg32 Reg32;
@@ -32,10 +40,6 @@ public:
     typedef CPU::Reg64 Count;
 
     static const unsigned int CLOCK = 250000000 / 1; // 250 MHz / PRE_DIV (0xFA == 250)
-
-    enum {
-        ARM_BASE1 = 0x3f00b400, //ARM_TIMER on Cortex_Memory_Map
-    };
 
     // Usefull Off-set Register from TIMER1_BASE
     enum {
@@ -61,9 +65,11 @@ public:
     };
 
 public:
-    //b2f8
-    static void handler(Interrupt_Id a){
-       kout << "." << endl;
+    static void handler(Interrupt_Id a) {
+        /*
+        FIXME: Best way to update the gpio status in a static function ?
+        _osc_pin = new GPIO_Engine( GPIO_Common::B, 7, GPIO_Common::OUT, GPIO_Common::DOWN, GPIO_Common::NONE);
+        */ 
     }
 
     void config(unsigned int unit, const Count & count) {
@@ -103,9 +109,13 @@ public:
 
 private:
     /* Reference to base adress of the timer, access to registers */
-    volatile Reg32 & timer(unsigned int o) { return reinterpret_cast<volatile Reg32 *>(ARM_BASE1)[o / sizeof(Reg32)]; }
+    volatile Reg32 & timer(unsigned int o) { return reinterpret_cast<volatile Reg32 *>(Memory_Map::TIMER1_BASE)[o / sizeof(Reg32)]; }
+
     /* Reference to timer itself, to call methods without the creation of a ARM_Timer object */
-    static ARM_Timer * arm_timer() { return reinterpret_cast<ARM_Timer *>(ARM_BASE1); }
+    static ARM_Timer * arm_timer() { return reinterpret_cast<ARM_Timer *>(Memory_Map::TIMER1_BASE); }
+
+    /* This GPIO pin bellow can be utilized to ensure ARM_Timer frequency on an oscilloscope */
+    GPIO_Engine * _osc_pin;
     
     /*
     config(unit, ticks): Handler will be called every ticks/frequency

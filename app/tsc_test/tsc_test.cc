@@ -1,17 +1,17 @@
 #include <utility/ostream.h>
+
 #include <machine/cortex/raspberry_pi3/raspberry_pi3_gpio.h>
 
 using namespace EPOS;
+
 OStream cout;
 
 long int z3 = 1000; 
 long int z6 = 1000000;
 
-int main() {  
+int main() {
+    GPIO_Engine * pin = new GPIO_Engine( GPIO_Common::B, 7, GPIO_Common::Direction::INOUT, GPIO_Common::Pull::DOWN, GPIO_Common::Edge::NONE );
 
-    GPIO_Engine * led = new GPIO_Engine( GPIO_Common::B, 7, GPIO_Common::OUT, GPIO_Common::DOWN, GPIO_Common::NONE);
-    while(1){}
-    
     /*
     long unsigned int start[10];
     long unsigned int end[10];
