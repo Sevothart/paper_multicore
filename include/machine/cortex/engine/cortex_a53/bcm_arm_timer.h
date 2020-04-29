@@ -6,7 +6,7 @@
 #include <architecture/cpu.h>
 
 #include <machine/cortex/raspberry_pi3/raspberry_pi3_gpio.h>
-#include <machine/ic.h>
+#include <machine/cortex/cortex_ic.h>
 #include <system/memory_map.h>
 
 #define __common_only__
@@ -23,6 +23,8 @@ system/config.h:
     Should add a macro like this #define __ARM_TIMER_H        __HEADER_ARCH(arm_timer);
 architecture/armv7/cpu_init.cc:
     Should have a new #ifdef __ARM_TIMER_H that would call init method if Traits<ARM_TIMER>::enabled
+
+TODO: Implement a time_stamp method
 */
 
 class ARM_Timer : public Timer_Common
@@ -65,31 +67,14 @@ public:
     };
 
 public:
-    static void handler(Interrupt_Id a) {
-        /*
-        FIXME: Best way to update the gpio status in a static function ?
-        _osc_pin = new GPIO_Engine( GPIO_Common::B, 7, GPIO_Common::OUT, GPIO_Common::DOWN, GPIO_Common::NONE);
-        */ 
-    }
-
     void config(unsigned int unit, const Count & count) {
         timer(CONTROL) = FREE_CLOCK;
         timer(RELOAD) = count;
         timer(LOAD) = count;
         timer(PRE_DIV) = 0x01; //0xFA
         timer(IRQ_CLR) = 0;
-        timer(CONTROL) = TIMER_EN | INT_EN | PRE_SCALE | CNTR_SIZE | FREE_CNTR; //0x3e00a2
-
-        IC::enable( IC::INT_ARM_TIMER );
-        IC::int_vector( IC::INT_ARM_TIMER, reinterpret_cast<Interrupt_Handler>(&handler) );
+        timer(CONTROL) = TIMER_EN | PRE_SCALE | CNTR_SIZE; //0x3e00a2
     }
-
-    Count count() {
-        return static_cast<Count>(timer(CNTR));
-    }
-
-    /* This is added to _eoi_vector of system in raspberry_pi3_ic_init.cc */
-    static void arm_eoi(IC::Interrupt_Id id){ arm_timer()->eoi(id); }
 
     void eoi(IC::Interrupt_Id id) {
         timer(IRQ_CLR) = 0;
@@ -97,14 +82,28 @@ public:
         while (timer(RAW_IRQ));
     }
 
-    void enable() {}
+    /* This is added to _eoi_vector of system in raspberry_pi3_ic_init.cc */
+    static void arm_eoi(IC::Interrupt_Id id){ arm_timer()->eoi(id); }
 
-    void disable() {}
+    void int_enable() {
+        timer(CONTROL) |= INT_EN;
 
-    void set(const Count & count) {
-        timer(RELOAD) = count;
+        IC::enable( IC::INT_ARM_TIMER );
+        IC::int_vector( IC::INT_ARM_TIMER, reinterpret_cast<Interrupt_Handler>(&handler) );
     }
 
+    static void handler(Interrupt_Id a) {
+        /* FIXME: How to update GPIO level inside a static function */
+        kout << "." << endl;
+    }
+
+    Count count() { return static_cast<Count>(timer(CNTR)); }
+
+    void enable() { timer(CONTROL) |= FREE_CNTR; start_time = ( count()/clock() ) * 1000000; }
+    void disable() { stop_time = ( count()/clock() ) * 100000; }
+    unsigned int time_stamp() { return (stop_time - start_time); }
+
+    void set(const Count & count) { timer(RELOAD) = count; }
     Hertz clock() { return CLOCK; }
 
 private:
@@ -113,9 +112,6 @@ private:
 
     /* Reference to timer itself, to call methods without the creation of a ARM_Timer object */
     static ARM_Timer * arm_timer() { return reinterpret_cast<ARM_Timer *>(Memory_Map::TIMER1_BASE); }
-
-    /* This GPIO pin bellow can be utilized to ensure ARM_Timer frequency on an oscilloscope */
-    GPIO_Engine * _osc_pin;
     
     /*
     config(unit, ticks): Handler will be called every ticks/frequency
@@ -123,8 +119,22 @@ private:
     Ex:  250000 in   1MHz -> called every 0.25s
     Ex: 5000000 in 250MHz -> called every 0.02s
     Ex:  250000 in 250MHz -> called every 0.001s
+    Ex:   10000 in 250MHz -> called every 40us
+    Ex:    1000 in 250MHz -> called every 4us
+    Ex:       1 in 250MHz -> called every 4ns
     */
-    static void init() { /*arm_timer()->config(1, 5000000);*/ }
+    static void init() { 
+        arm_timer()->config(1, 10000);
+        arm_timer()->int_enable();
+        arm_timer()->enable();
+    }
+
+private:
+    /* This GPIO pin bellow can be utilized to ensure ARM_Timer frequency on an oscilloscope */
+    GPIO_Engine * _osc_pin;
+
+    unsigned int start_time;
+    unsigned int stop_time;
 };
 
 __END_SYS
