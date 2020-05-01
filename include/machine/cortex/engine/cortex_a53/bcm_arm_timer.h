@@ -100,7 +100,6 @@ public:
     Count count() { return static_cast<Count>(timer(CNTR)); }
 
     void start() {
-        timer(CONTROL) |= FREE_CNTR;
         start_time = ( count() * 1000000000 ) / clock();
     }
 
@@ -111,6 +110,7 @@ public:
 
     void enable() {
         config(1, 1000000000);
+        timer(CONTROL) |= FREE_CNTR;
     }
 
     void disable() {
