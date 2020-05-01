@@ -3,6 +3,8 @@
 include makedefs
 
 SUBDIRS	:= etc tools src app img
+VOLUME = RASPEPOS
+TEST_APP = armtimer_test
 
 all: FORCE
 ifndef APPLICATION
@@ -127,5 +129,11 @@ dist: veryclean
 		sed -e 's/^\/\//#/' LICENSE > LICENSE.as
 		find $(TOP) -name "*.S" -print | xargs sed -i "1r $(TOP)/LICENSE.as"
 		$(CLEAN) LICENSE.as
+
+load:
+		/usr/local/arm/gcc-7.2.0/bin/arm-objcopy -O binary img/$(TEST_APP) img/kernel7.img
+		rm /media/$(USER)/$(VOLUME)/kernel7.img
+		mv img/kernel7.img /media/$(USER)/$(VOLUME)
+		umount /media/$(USER)/$(VOLUME)
 
 FORCE:
