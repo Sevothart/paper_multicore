@@ -1,6 +1,5 @@
 #include <system/config.h>
-#include <machine/cortex/engine/cortex_m3/gptm.h>
-#include <architecture/armv7/tsc.h>
+#include <machine/cortex/engine/cortex_a53/bcm_arm_timer.h>
 
 __BEGIN_SYS
 
@@ -8,18 +7,19 @@ class ITimer
 {
 public:
     ITimer(){
-        start_time = TSC::time_stamp();
+        start_ticks = timer->count();
     }
     
     unsigned int stop(const char * what, void * where)
     {
-        unsigned int val = TSC::time_stamp() - start_time;
-        //kout << "||" << what << "@" << where << "||" << val << "ticks||\n";
+        unsigned int val = timer->count() - start_ticks;
+        kout << "||" << what << "@" << where << "||" << val << "ticks||\n";
         return val;
     } 
     ~ITimer() {}
 private:
-    unsigned int start_time; 
+    unsigned int start_ticks;
+    ARM_Timer * timer;
 };
 
 __END_SYS

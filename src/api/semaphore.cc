@@ -182,7 +182,7 @@ void Semaphore_SRP::p()
 {
   Semaphore_RT::p();
   begin_atomic();
-    ITimer t;
+  ITimer t;
   updateCeiling();
   t.stop("srp_p", this);
   end_atomic();
@@ -192,7 +192,7 @@ void Semaphore_SRP::v()
 {
   Semaphore_RT::v();
   begin_atomic();
-    ITimer t;
+  ITimer t;
   updateCeiling();
   t.stop("srp_v", this);
   end_atomic();

@@ -99,15 +99,6 @@ public:
 
     Count count() { return static_cast<Count>(timer(CNTR)); }
 
-    void start() {
-        start_time = ( count() * 1000000000 ) / clock();
-    }
-
-    void stop() {
-        stop_time = ( count() * 1000000000 ) / clock();
-        kout << "Event time_stamp [ns]: " << stop_time - start_time << endl;
-    }
-
     void enable() {
         config(1, 1000000000);
         timer(CONTROL) |= FREE_CNTR;
@@ -140,16 +131,13 @@ private:
     Ex:       1 in 250MHz -> called every 4ns
     */
     static void init() { 
-        arm_timer()->config(1, 10000);
         arm_timer()->int_enable();
+        arm_timer()->enable();
     }
 
 private:
     /* This GPIO pin bellow can be utilized to ensure ARM_Timer frequency on an oscilloscope */
     GPIO_Engine * _osc_pin;
-
-    unsigned long int start_time;
-    unsigned long int stop_time;
 };
 
 __END_SYS
