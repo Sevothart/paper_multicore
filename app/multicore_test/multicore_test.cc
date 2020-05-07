@@ -29,12 +29,12 @@ int main(){
     threads[3] = new Thread( *t2_config, &rotina, 3 );
     threads[4] = new Thread( *t3_config, &rotina, 4 );
 
-    start.unlock();
-
     cout << "Threads will join now." << endl;
     for( int i=0; i<5; i++ )
         threads[i]->join();
 
+    start.unlock();
+    
     cout << "Deleting threads." << endl;    
     for(int i = 0; i < 5; i++)
         delete threads[i];

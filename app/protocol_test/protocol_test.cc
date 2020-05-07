@@ -8,8 +8,8 @@
 using namespace EPOS;
 OStream cout;
 
-const unsigned int iterations = 100; //1024
-const unsigned int sem_val = 100; //1000
+const unsigned int iterations = 10; //1024
+const unsigned int sem_val = 10; //1000
 unsigned long long p_total = 0, v_total = 0;
 
 template< typename S >
