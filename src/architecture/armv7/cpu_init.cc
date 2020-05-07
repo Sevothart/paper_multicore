@@ -26,6 +26,7 @@ void CPU::init()
 #ifdef __TSC_H
     if(Traits<TSC>::enabled){
         TSC::init();
+        ARM_Timer::init();
     }
 #endif
 }
