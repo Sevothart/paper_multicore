@@ -41,7 +41,7 @@ private:
 
 class Semaphore_RT: public Semaphore
 {
-  public: 
+public: 
     Semaphore_RT(int v = 1): Semaphore(v), _owner(0), _priority(0){}
     
     typedef Thread Thread_t;
@@ -54,7 +54,7 @@ class Semaphore_RT: public Semaphore
     Priority_t priority() { return _priority; }
     void priority(Priority_t priority) { _priority = priority; }
     
-  protected:
+protected:
     Thread_t* currentThread()
     {
         return( reinterpret_cast<Thread_t *>(Thread::self()) );
@@ -66,7 +66,7 @@ class Semaphore_RT: public Semaphore
         return reinterpret_cast< Thread_t *>(_queue.head()->object());
     }
     
-  private:
+private:
     Thread_t *_owner;
     Priority_t _priority;
 };
@@ -217,32 +217,33 @@ private:
     
 };
 
-/* MULTICORE IMPLEMENTATION
-previous approach:
-    assign maximum possible value, allow use of small negative values [0; -31] for creating different levels
-    return 2147483647 + ( (ceiling < 0 && ceiling > -32) ? ceiling : 0 );
-*/
-
 /*
-    Based on "A Proposal of Change to the Multiprocessor Priority Ceiling Protocol".
-    For a task to enter a critical section, its priority will be adjusted.
-    On access, adding the _highest_priority of the system to it,
-    guarantees tasks will not be preempted by tasks out of critical sections.
+MPCP Documentation: Rajkumar rules
+1. Thread normal priority is used out of critical sections.
+2. Local critical sections uses IPCP
+3. Thread accessing Global critical sections has its priority assigned as: _highest_system_priority + 1 + _priority
+4. Jobs on other Global critical section can only preempt if its priority is higher
+5. When a job request Global critical section, can only access if there is no owner currently on the section
+6. IF Global critical section is empty: Thread is inserted on synchronizer prioritized queue, using its normal_priority
+7. On v() operations, if there's any thread on queue head, signal it: p()
 */
 
-typedef Semaphore_PCP Semaphore_MPCP_Local; /* Used for resources not shared between cores*/
+/* Used for resources not shared between cores*/
+typedef Semaphore_IPCP Semaphore_MPCP_Local;
 
-class Semaphore_MPCP_Global: public Semaphore_PCP /* Used for shared resources between cores */
+/* Used for shared resources between cores */
+class Semaphore_MPCP_Global: public Semaphore_RT
 {
 public:
-    Semaphore_MPCP_Global( Priority_t ceiling, Priority_t h_pri ):
-    Semaphore_PCP(ceiling), _highest_priority(h_pri) {}
+    Semaphore_MPCP_Global(Priority_t h_pri, int value = 1 ): Semaphore_RT( value ), _h_priority(h_pri + 1) {}
 
-    Priority_t toGlobalCeiling() { return _highest_priority + ceiling(); }
+    Priority_t toGlobalCeiling() { return _h_priority + owner()->priority(); }
+    void p();
+    void v();
 
 private:
-    /* highest priority in the whole system, every core couting */
-    Priority_t _highest_priority; 
+    /* Highest priority in the whole system + 1, including every core */
+    Priority_t _h_priority;
 };
 
 // Conditional Observer x Conditionally Observed with Data decoupled by a Semaphore

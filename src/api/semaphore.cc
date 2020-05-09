@@ -69,133 +69,133 @@ void Semaphore::v()
 // IPCP IMPLEMENTATION
 void Semaphore_IPCP::p()
 {
-    ITimer t;
-  begin_atomic();
+	ITimer t;
+	begin_atomic();
     
-  if(!owner())
-  {
-    // I am the new owner
-    owner(currentThread());
-    priority(owner()->priority());
-    owner()->priority(ceiling());
-  }
-  else
-  {
-    // I will wait in the queue
-    // Nothing to be done for me
-  }
-  
-  t.stop("ipcp_p", this);
-  Semaphore_RT::p();
-  end_atomic();
+	if(!owner())
+  	{
+    	// I am the new owner
+    	owner(currentThread());
+    	priority(owner()->priority());
+  	  	owner()->priority(ceiling());
+  	}
+  	else
+  	{
+  	  // I will wait in the queue
+  	  // Nothing to be done for me
+  	}
+	
+  	t.stop("ipcp_p", this);
+  	Semaphore_RT::p();
+  	end_atomic();
 }
 
 void Semaphore_IPCP::v()
 {
-  ITimer t;
-  begin_atomic();
-  
-  if(owner() == currentThread()) //this should be true, otherwise some kind of "double free" happened
-  {
-    owner()->priority(priority());
-      
-    Thread_t * next = nextThread();
-    
-    if(next)
-    {
-      // the next thread is the new owner
-      owner(next);
-      
-      //immediately set the new priority
-      priority(next->priority());
-      next->priority(ceiling());
-    }
-    else
-    {
-      owner(0); // nobody owns this semaphore anymore
-    }
-  }
-  
-  t.stop("ipcp_v", this);
-  Semaphore_RT::v();
-  end_atomic();
+  	ITimer t;
+  	begin_atomic();
+	
+  	if(owner() == currentThread()) //this should be true, otherwise some kind of "double free" happened
+  	{
+		owner()->priority(priority());
+	
+  	  	Thread_t * next = nextThread();
+
+  	  	if(next)
+  	  	{
+  	  	  	// the next thread is the new owner
+  	  	  	owner(next);
+
+  	  	  	//immediately set the new priority
+  	  	  	priority(next->priority());
+  	  	  	next->priority(ceiling());
+  	  	}
+  	  	else
+  	  	{
+  	  	  	owner(0); // nobody owns this semaphore anymore
+  	  	}
+  	}
+	
+  	t.stop("ipcp_v", this);
+  	Semaphore_RT::v();
+  	end_atomic();
 }
 
 // PCP IMPLEMENTATION
 void Semaphore_PCP::p()
 {
-  begin_atomic();
-    ITimer t;
-    
-  if(!owner())
-  {
-    // I am the new owner
-    owner(currentThread());
-    t.stop("pcp_p", this);
-    priority(owner()->priority());
-  }
-  else
-  {
-    // There is an owner in my way
-    // I'll set its priority to the ceiling
-    t.stop("pcp_p", this);
-    if(owner()->priority() < ceiling()) owner()->priority(ceiling());
-  }
-  
-  Semaphore_RT::p();
-  end_atomic();
+  	begin_atomic();
+  	ITimer t;
+	
+  	if(!owner())
+  	{
+  	  	// I am the new owner
+  	  	owner(currentThread());
+  	  	t.stop("pcp_p", this);
+  	  	priority(owner()->priority());
+  	}
+  	else
+  	{
+  	  	// There is an owner in my way
+  	  	// I'll set its priority to the ceiling
+  	  	t.stop("pcp_p", this);
+  	  	if(owner()->priority() < ceiling()) owner()->priority(ceiling());
+  	}
+	
+  	Semaphore_RT::p();
+  	end_atomic();
 }
 
 void Semaphore_PCP::v()
 {
-  begin_atomic();
-  
-  if(owner() == currentThread()) //this should be true, otherwise some kind of "double free" happened
-  {
-    owner()->priority(priority()); // restore the priority of this owner thread
-    ITimer t;
-      
-    Thread_t * next = nextThread();
-    
-    if(next)
-    {
-      // the next thread is the new owner
-      owner(next);
-      
-      // immediately set the new priority 
-      priority(next->priority());
-      next->priority(ceiling());
-    }
-    else
-    {
-      owner(0); // nobody owns this semaphore anymore
-    }
-    t.stop("pcp_v", this);
-  }
-  
-  Semaphore_RT::v();
-  end_atomic();
+  	begin_atomic();
+	
+  	if(owner() == currentThread()) //this should be true, otherwise some kind of "double free" happened
+  	{
+  	  	owner()->priority(priority()); // restore the priority of this owner thread
+  	  	ITimer t;
+
+  	  	Thread_t * next = nextThread();
+
+  	  	if(next)
+  	  	{
+  	  	  // the next thread is the new owner
+  	  	  	owner(next);
+
+  	  	  	// immediately set the new priority 
+  	  	  	priority(next->priority());
+  	  	  	next->priority(ceiling());
+  	  	}
+  	  	else
+  	  	{
+  	  	  	owner(0); // nobody owns this semaphore anymore
+  	  	}
+  	  	t.stop("pcp_v", this);
+  	}
+	
+  	Semaphore_RT::v();
+  	end_atomic();
 }
 
 // SRP IMPLEMENTATION
 void Semaphore_SRP::p()
 {
-  Semaphore_RT::p();
-  begin_atomic();
-  ITimer t;
-  updateCeiling();
-  t.stop("srp_p", this);
-  end_atomic();
+  	Semaphore_RT::p();
+  	begin_atomic();
+  	ITimer t;
+  	updateCeiling();
+  	t.stop("srp_p", this);
+  	end_atomic();
 }
 
 void Semaphore_SRP::v()
 {
-  Semaphore_RT::v();
-  begin_atomic();
-  ITimer t;
-  updateCeiling();
-  t.stop("srp_v", this);
-  end_atomic();
+  	Semaphore_RT::v();
+  	begin_atomic();
+  	ITimer t;
+  	updateCeiling();
+  	t.stop("srp_v", this);
+  	end_atomic();
 }
 
 Semaphore_SRP* Semaphore_SRP::_resources[MAX_RESOURCES];
@@ -221,6 +221,48 @@ bool Scheduling_Criteria::RT_Common::Elector_SRP::eligible(const Scheduling_Crit
     // kout << (el?"YES":"NO") << endl;
     
     return el;
+}
+
+void Semaphore_MPCP_Global::p()
+{
+	ITimer t;
+	begin_atomic();
+	if( !owner() )
+	{
+		owner( currentThread() );
+		priority( owner()->priority() );
+		owner()->priority( toGlobalCeiling() );
+	}
+	else { /* Couldn't get access, wait on synchronizer queue with normal_priority */ }
+
+	t.stop("mpcp_global_p", this);
+  	Semaphore_RT::p();
+  	end_atomic();
+}
+
+void Semaphore_MPCP_Global::v()
+{
+	ITimer t;
+  	begin_atomic();
+	
+  	if(owner() == currentThread())
+  	{
+		owner()->priority( priority() );
+  	  	Thread_t * next = nextThread();
+
+  	  	if(next)
+  	  	{
+  	  	  	owner(next);
+  	  	  	priority( next->priority() );
+  	  	  	next->priority( toGlobalCeiling() );
+  	  	}
+  	  	else
+  	  	  	owner(0);
+  	}
+	
+  	t.stop("mpcp_global_v", this);
+  	Semaphore_RT::v();
+  	end_atomic();
 }
 
 __END_SYS
