@@ -1,4 +1,4 @@
-# EPOS PC Machine Mediators Makefile
+# EPOS PC Machine Makefile
 
 include ../../../makedefs
 

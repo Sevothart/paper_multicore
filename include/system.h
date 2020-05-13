@@ -1,7 +1,7 @@
 // EPOS System/Application Containers and Dynamic Memory Allocators Declarations
 
-#ifndef __malloc_h
-#define __malloc_h
+#ifndef __system_h
+#define __system_h
 
 #include <utility/string.h>
 #include <utility/heap.h>

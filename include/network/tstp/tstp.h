@@ -21,7 +21,7 @@ __BEGIN_SYS
 
 class TSTP: private Traits<TSTP>::NIC_Family, private SmartData, private NIC<Traits<TSTP>::NIC_Family>::Observer
 {
-    friend class Network_Common;
+    friend class Network;
     friend class Epoch;
 
 private:
@@ -30,7 +30,6 @@ private:
 public:
     // Parts
     typedef Traits<TSTP>::NIC_Family NIC_Family;
-    typedef Traits<Traits<TSTP>::NIC_Family>::DEVICES::Get<0>::Result _NIC;
     template<typename Radio, bool duty_cycling> class MAC;
     class Router;
     class Locator;
@@ -102,8 +101,7 @@ public:
     };
 
 protected:
-    template<unsigned int UNIT = 0>
-    TSTP(unsigned int nic = UNIT);
+    TSTP(NIC<NIC_Family> * nic);
 
 public:
     ~TSTP();
@@ -143,7 +141,7 @@ private:
 
     static void marshal(Buffer * buf);
 
-    static void init(unsigned int unit);
+    static void init();
 
 private:
     static Security * _security;
@@ -154,7 +152,7 @@ private:
 
     static Time _epoch;
 
-    static _NIC * _nic;
+    static NIC<NIC_Family> * _nic;
     static Data_Observed<Buffer> _parts;
     static Data_Observed<Buffer, Unit> _clients;
 };

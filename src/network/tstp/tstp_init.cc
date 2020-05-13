@@ -11,12 +11,11 @@
 
 __BEGIN_SYS
 
-template<unsigned int UNIT>
-TSTP::TSTP(unsigned int unit)
+TSTP::TSTP(NIC<NIC_Family> * nic)
 {
-    db<Init, TSTP>(TRC) << "TSTP::TSTP(u=" << unit << ")" << endl;
+    db<Init, TSTP>(TRC) << "TSTP::TSTP(nic=" << nic << ")" << endl;
 
-    _nic = Traits<Traits<TSTP>::NIC_Family>::DEVICES::Get<UNIT>::Result::get(unit);
+    _nic = nic;
     _nic->attach(this, PROTO_TSTP);
 
     // The order parts are created defines the order they get notified when packets arrive!
@@ -56,8 +55,8 @@ TSTP::Security::Security()
 TSTP::Timekeeper::Timekeeper()
 {
     db<TSTP>(TRC) << "TSTP::Timekeeper()" << endl;
-    db<TSTP>(INF) << "TSTP::Timekeeper: timer frequency = " << _NIC::Timer::frequency() << " Hz" << endl;
-    db<TSTP>(INF) << "TSTP::Timekeeper: timer accuracy = " << _NIC::Timer::accuracy() << " ppb" << endl;
+    db<TSTP>(INF) << "TSTP::Timekeeper: timer frequency = " << NIC<NIC_Family>::Timer::frequency() << " Hz" << endl;
+    db<TSTP>(INF) << "TSTP::Timekeeper: timer accuracy = " << NIC<NIC_Family>::Timer::accuracy() << " ppb" << endl;
     db<TSTP>(INF) << "TSTP::Timekeeper: maximum drift = " << MAX_DRIFT << " us" << endl;
     db<TSTP>(INF) << "TSTP::Timekeeper: sync period = " << sync_period() << " us" << endl;
 
@@ -113,11 +112,13 @@ TSTP::Manager::Manager()
     attach(this);
 }
 
-void TSTP::init(unsigned int unit)
+void TSTP::init()
 {
-    db<Init, TSTP>(TRC) << "TSTP::init(u=" << unit << ")" << endl;
+    db<Init, TSTP>(TRC) << "TSTP::init()" << endl;
 
-    new (SYSTEM) TSTP(unit);
+    NIC<NIC_Family> * nic = Traits<NIC_Family>::DEVICES::Get<Traits<TSTP>::NICS[0]>::Result::get(Traits<TSTP>::NICS[0]);
+
+    new (SYSTEM) TSTP(nic);
 }
 
 __END_SYS

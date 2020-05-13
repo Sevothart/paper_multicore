@@ -18,6 +18,8 @@ __BEGIN_SYS
 
 class TCP: private IP::Observer
 {
+    friend IP;
+
 private:
     typedef IP::Packet Packet;
 
@@ -252,11 +254,13 @@ public:
         TCP::Observer * _observer;
     };
 
-public:
+protected:
     TCP() {
         db<TCP>(TRC) << "TCP::TCP()" << endl;
         IP::attach(this, IP::TCP);
     }
+
+public:
     ~TCP() {
         db<TCP>(TRC) << "TCP::~TCP()" << endl;
         IP::detach(this, IP::TCP);

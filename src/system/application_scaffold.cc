@@ -23,12 +23,10 @@ __END_API
 
 extern "C" {
     void __pre_main() {
-        if(_SYS::Traits<_SYS::Monitor>::enabled)
-            _SYS::Monitor::init();
 
 #ifdef __NIC_H
         if(_SYS::Traits<_SYS::Network>::enabled)
-            _SYS::Network_Common::init();
+            _SYS::Network::init();
 #endif
     }
 }

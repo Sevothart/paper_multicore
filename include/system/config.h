@@ -49,7 +49,7 @@ namespace EPOS {
 }
 #endif
 
-#define __HEADER_ARCH(X)        <architecture/ARCH/X.h>
+#define __HEADER_ARCH(X)        <architecture/ARCH/ARCH/**/_##X.h>
 #define __HEADER_MACH(X)        <machine/MACH/MACH/**/_##X.h>
 #define __HEADER_MMOD(X)        <machine/MACH/MMOD/MMOD/**/_##X.h>
 #define __HEADER_TRAN(X)        <transducer/X.h>

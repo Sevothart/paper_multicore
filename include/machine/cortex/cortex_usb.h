@@ -41,7 +41,6 @@ private:
         IC::int_vector(IC::INT_USB0, &int_handler);
         IC::enable(IC::INT_USB0);
     }
-
     static void int_handler(IC::Interrupt_Id i);
     static void eoi(IC::Interrupt_Id int_id);
 };

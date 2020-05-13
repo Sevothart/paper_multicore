@@ -2,21 +2,24 @@
 
 #include <system/config.h>
 
-#ifdef __ethernet__
+#ifdef __NIC_H
 
 #ifndef __elp_h
 #define __elp_h
 
 #include <machine/nic.h>
 #include <utility/binding.h>
+#include <system.h>
 
 __BEGIN_SYS
 
 class ELP: private NIC<Traits<ELP>::NIC_Family>::Observer
 {
-    friend class Network_Common;
+    friend class Network;
 
 private:
+    static const unsigned int UNITS = COUNTOF(Traits<ELP>::NICS);
+
 public:
     typedef Traits<ELP>::NIC_Family NIC_Family;
     static const bool connectionless = true;
@@ -27,8 +30,6 @@ public:
     class Address
     {
     public:
-        typedef Port Local;
-
         enum Null { NULL = 0xffff };
 
     public:
@@ -38,7 +39,6 @@ public:
 
         const typename NIC_Family::Address & mac() const { return _mac; }
         const Port & port() const { return _port; }
-        const Local & local() const { return _port; }
 
         operator bool() const {
             return (_mac || _port);
@@ -114,9 +114,8 @@ public:
     typedef _UTIL::Binding<ELP, Port, NIC<NIC_Family>, NIC_Family::Address> Binding;
 
 protected:
-    template<unsigned int UNIT = 0>
-    ELP(unsigned int unit = UNIT): _nic(Traits<NIC_Family>::DEVICES::Get<UNIT>::Result::get(unit)) {
-        db<ELP>(TRC) << "ELP::ELP()" << endl;
+    ELP(NIC<NIC_Family> * nic): _nic(nic) {
+        db<ELP>(TRC) << "ELP::ELP(nic=" << _nic << ")" << endl;
         _nic->attach(this, PROTOCOL);
     }
 
@@ -129,7 +128,7 @@ public:
     static int send(const Address & from, const Address & to, const void * data, unsigned int size) {
         db<ELP>(TRC) << "ELP::send(f=" << from << ",t=" << to << ",d=" << data << ",s=" << size << ")" << endl;
 
-        Binding * binding = Binding::get_by_key(0);
+        Binding * binding = Binding::get_by_key(from.port());
         if(!binding)
             return 0;
 
@@ -177,7 +176,6 @@ public:
 
     static void attach(Observer * obs, const Address & address) { Binding::rebind(Address::NULL, 0); _observed.attach(obs, 0); }
     static void detach(Observer * obs, const Address & address) { _observed.detach(obs, 0); Binding::unbind(0); }
-    static bool notify(const Port & port, Buffer * buf) { return _observed.notify(0, buf); }
 
 private:
     void update(NIC_Family::Observed * obs, const Protocol & prot, Buffer * buf) {
@@ -185,15 +183,18 @@ private:
             _nic->free(buf);
     }
 
-    static void init(unsigned int unit)
-    {
-        db<Init, ELP>(TRC) << "ELP::init(u=" << unit << ")" << endl;
+    static bool notify(const Port & port, Buffer * buf) { return _observed.notify(0, buf); }
 
-        ELP * elp = new (SYSTEM) ELP(unit);
-        NIC<NIC_Family> * nic = elp->nic();
-
+    template<unsigned int UNIT>
+    inline static void init_helper() {
+        NIC<NIC_Family> * nic = Traits<NIC_Family>::DEVICES::Get<Traits<ELP>::NICS[UNIT]>::Result::get(Traits<ELP>::NICS[UNIT]);
+        ELP * elp = new (SYSTEM) ELP(nic);
         new (SYSTEM) Binding(elp, Port(Address::NULL), nic, nic->address());
-    }
+
+        init_helper<UNIT + 1>();
+    };
+
+    static void init();
 
 private:
     NIC<NIC_Family> * _nic;
@@ -201,113 +202,8 @@ private:
     static Observed _observed; // Channel protocols are singletons
 };
 
-//template<typename Channel>
-//class ELP<Channel, true>: private Channel
-//{
-//    //    friend class Network_Common;
-//
-//private:
-//    typedef typename Channel::Address Channel_Address;
-//
-//public:
-//    static const bool connectionless = true;
-//    static const unsigned int PROTOCOL = Ethernet::PROTO_ELP;
-//
-//    typedef unsigned short Port;
-//
-//    class Address
-//    {
-//    public:
-//        typedef Port Local;
-//
-//        enum Null { NULL = Channel_Address::NULL };
-//
-//    public:
-//        Address(): _addr(NULL), _port(0) {}
-//        Address(const Null &): _addr(NULL), _port(0) {}
-//        Address(const Channel_Address & addr, const Port & port): _addr(addr), _port(port) {}
-//
-//        const Channel_Address & channel_address() const { return _addr; }
-//        const Port & port() const { return _port; }
-//        const Local & local() const { return _port; }
-//
-//        operator bool() const {
-//            return (_addr || _port);
-//        }
-//
-//        bool operator==(const Address & a) {
-//            return (_addr == a._addr) && (_port == a._port);
-//        }
-//
-//        friend OStream & operator<<(OStream & db, const Address & a) {
-//            db << a._addr << ":" << hex << a._port;
-//            return db;
-//        }
-//
-//    private:
-//        Channel_Address _addr;
-//        Port _port;
-//    };
-//
-//    typedef typename Channel::Protocol Protocol;
-//    typedef typename Channel::Buffer Buffer;
-//    typedef typename Channel::Header Header;
-//
-//    class Packet: public Channel::Packet
-//    {
-//    public:
-//        Packet() {}
-//
-//        Address from() { return Address(from(), 0); }
-//    } __attribute__((packed));
-//
-//    typedef Data_Observer<Buffer, Port> Observer;
-//    typedef Data_Observed<Buffer, Port> Observed;
-//
-//    static const unsigned int MTU = Channel::MTU;
-//    typedef unsigned char Data[MTU];
-//
-//public:
-//    ELP(const Port & port): _port(port) {
-//        db<ELP>(TRC) << "ELP::ELP(p="<< port << ")" << endl;
-//        Channel::attach(this, PROTOCOL);
-//    }
-//
-//    ~ELP() {
-//        db<ELP>(TRC) << "ELP::~ELP()" << endl;
-//        Channel::detach(this, PROTOCOL);
-//    }
-//
-//    static int send(const Port & from, const Address & to, const void * data, unsigned int size) {
-//        db<ELP>(TRC) << "ELP::send(f=" << from << ",t=" << to << ",d=" << data << ",s=" << size << ")" << endl;
-//
-//        return Channel::send(_local, to, data, size);
-//    }
-//
-//    static int receive(const Port * from, void * data, unsigned int size) {
-//        db<ELP>(TRC) << "ELP::receive(buf=" << buf << ",d=" << data << ",s=" << size << ")" << endl;
-//
-//        return Channel::receive(from, data, size);
-//    }
-//
-//    static Address address() { return Address(_nic->address(), 0); }
-//
-//    static void attach(Observer * obs, const Port & port) { _observed.attach(obs, port); }
-//    static void detach(Observer * obs, const Port & port) { _observed.detach(obs, port); }
-//    static bool notify(const Port & port, Buffer * buf) { return _observed.notify(port, buf); }
-//
-//private:
-//    void update(Ethernet::Observed * obs, const Protocol & prot, Buffer * buf) {
-//        if(!notify(0, buf))
-//            _nic->free(buf);
-//    }
-//
-//    private:
-//    Port _port;
-//
-//    static NIC<Ethernet> * _nic;
-//    static Observed _observed; // Channel protocols are singletons
-//};
+template<>
+inline void ELP::init_helper<ELP::UNITS>() {};
 
 __END_SYS
 

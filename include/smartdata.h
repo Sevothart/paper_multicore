@@ -1210,16 +1210,16 @@ public:
 
     const Unit unit() const { return UNIT; }
     const Error & error() const { return _response.error(); }
-    const Percent & confidence() const { return _response.confidence; }
+    const Percent & confidence() const { return _response.confidence(); }
 
     Spacetime origin() const { return Spacetime(space(), time()); }
-    Space space() const { return Locator::absolute(_response.origin); }
-    Time time() const { return Timekeeper::absolute(_response.origin); }
+    Space space() const { return Locator::absolute(_response.origin()); }
+    Time time() const { return Timekeeper::absolute(_response.origin()); }
 
     const Mode & mode() const { return _mode; }
     const Precision & precision() const { return _precision; }
 
-    Time_Offset expiry() const { return _response.expiry; }
+    Time_Offset expiry() const { return _response.expiry(); }
     bool expired() const { return Timekeeper::now() > (_response.time() + _expiry); }
 
     operator Value & () {

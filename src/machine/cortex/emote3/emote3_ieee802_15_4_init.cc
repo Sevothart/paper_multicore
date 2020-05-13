@@ -1,17 +1,17 @@
-// EPOS TI CC2538 IEEE 802.15.4 NIC Mediator Initialization
+// EPOS EPOSMoteIII (ARM Cortex-M3) 802.15.4 NIC Mediator Initialization
 
 #include <system.h>
 
 #ifdef __ieee802_15_4__
 
 #include <machine/gpio.h>
-#include <machine/cortex/emote3/emote3_ieee802_15_4.h>
+#include <machine/cortex/cortex_ieee802_15_4.h>
 
 __BEGIN_SYS
 
-CC2538::CC2538(unsigned int unit): _unit(unit), _rx_cur_consume(0), _rx_cur_produce(0)
+IEEE802_15_4_NIC::IEEE802_15_4_NIC(unsigned int unit): _unit(unit), _rx_cur_consume(0), _rx_cur_produce(0)
 {
-    db<CC2538>(TRC) << "CC2538(unit=" << unit << ") => " << this << endl;
+    db<IEEE802_15_4_NIC>(TRC) << "IEEE802_15_4_NIC(unit=" << unit << ") => " << this << endl;
 
     // Initialize RX buffer pool
     for(unsigned int i = 0; i < RX_BUFS; i++)
@@ -27,7 +27,7 @@ CC2538::CC2538(unsigned int unit): _unit(unit), _rx_cur_consume(0), _rx_cur_prod
     xreg(FRMFILT1) &= ~ACCEPT_FT2_ACK; // ACK frames are handled only when expected
     xreg(FRMCTRL0) |= AUTO_CRC; // Enable auto-CRC
 
-    if(!Traits<CC2538>::tstp_mac) {
+    if(!Traits<IEEE802_15_4_NIC>::tstp_mac) {
         // Configure frame filtering by hardware
         if(CC2538RF::promiscuous)
             xreg(FRMFILT0) &= ~FRAME_FILTER_EN;
@@ -45,13 +45,13 @@ CC2538::CC2538(unsigned int unit): _unit(unit), _rx_cur_consume(0), _rx_cur_prod
             xreg(FRMCTRL1) &= ~SET_RXENMASK_ON_TX; // Do not enter receive mode after ISTXON
     }
 
-    channel(Traits<CC2538>::DEFAULT_CHANNEL);
+    channel(Traits<IEEE802_15_4_NIC>::DEFAULT_CHANNEL);
 
-    if(Traits<CC2538>::gpio_debug) {
+    if(Traits<IEEE802_15_4_NIC>::gpio_debug) {
         // Enable debug signals to GPIO
         GPIO p_tx('C',3,GPIO::OUT,GPIO::FLOATING); // Configure GPIO pin C3
         GPIO p_rx('C',5,GPIO::OUT,GPIO::FLOATING); // Configure GPIO pin C5
-        if(Traits<CC2538>::promiscuous) {
+        if(Traits<IEEE802_15_4_NIC>::promiscuous) {
             xreg(RFC_OBS_CTRL0) = SIGNAL_RX_ACTIVE; // Signal 0 is RX_ACTIVE
             xreg(RFC_OBS_CTRL1) = SIGNAL_TX_ACTIVE; // Signal 1 is TX_ACTIVE
         } else {
@@ -83,12 +83,12 @@ CC2538::CC2538(unsigned int unit): _unit(unit), _rx_cur_consume(0), _rx_cur_prod
 }
 
 
-void CC2538::init(unsigned int unit)
+void IEEE802_15_4_NIC::init(unsigned int unit)
 {
-    db<Init, CC2538>(TRC) << "CC2538::init(unit=" << unit << ")" << endl;
+    db<Init, IEEE802_15_4_NIC>(TRC) << "IEEE802_15_4_NIC::init(unit=" << unit << ")" << endl;
 
     // Initialize the device
-    CC2538 * dev = new (SYSTEM) CC2538(unit);
+    IEEE802_15_4_NIC * dev = new (SYSTEM) IEEE802_15_4_NIC(unit);
 
     // Enable clock to RF module
     dev->power(FULL);
@@ -110,9 +110,9 @@ void CC2538::init(unsigned int unit)
 }
 
 
-void CC2538::Timer::init()
+void IEEE802_15_4_NIC::Timer::init()
 {
-    db<Init, CC2538>(TRC) << "Radio::Timer::init()" << endl;
+    db<Init, IEEE802_15_4_NIC>(TRC) << "Radio::Timer::init()" << endl;
     _periodic_update = 0;
     _periodic_update_update = 0;
     _periodic_update_update_update = 0;

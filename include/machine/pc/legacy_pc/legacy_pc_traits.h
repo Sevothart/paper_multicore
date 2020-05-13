@@ -1,17 +1,14 @@
 // EPOS PC Machine Metainfo and Configuration
 
-#ifndef __machine_engine_traits_h
-#define __machine_engine_traits_h
+#ifndef __legacy_pc_traits_h
+#define __legacy_pc_traits_h
 
 #include <system/config.h>
 
 __BEGIN_SYS
 
 class Machine_Common;
-template<> struct Traits<Machine_Common>: public Traits<void>
-{
-    static const bool debugged = Traits<void>::debugged;
-};
+template<> struct Traits<Machine_Common>: public Traits<Build> {};
 
 template<> struct Traits<Machine>: public Traits<Machine_Common>
 {
@@ -105,7 +102,7 @@ template<> struct Traits<UART>: public Traits<Machine_Common>
     static const unsigned int COM4 = 0x2e8; // to 0x2ef, no IRQ
 };
 
-template<> struct Traits<Serial_Display>: public Traits<void>
+template<> struct Traits<Serial_Display>: public Traits<Machine_Common>
 {
     static const bool enabled = (Traits<Build>::EXPECTED_SIMULATION_TIME != 0);
     static const int ENGINE = UART;
@@ -115,7 +112,7 @@ template<> struct Traits<Serial_Display>: public Traits<void>
     static const int TAB_SIZE = 8;
 };
 
-template<> struct Traits<Serial_Keyboard>: public Traits<void>
+template<> struct Traits<Serial_Keyboard>: public Traits<Machine_Common>
 {
     static const bool enabled = (Traits<Build>::EXPECTED_SIMULATION_TIME != 0);
 };
@@ -142,7 +139,7 @@ template<> struct Traits<Scratchpad>: public Traits<Machine_Common>
 
 template<> struct Traits<Ethernet>: public Traits<Machine_Common>
 {
-    typedef LIST<PCNet32> DEVICES;
+    typedef LIST<PCNet32, PCNet32> DEVICES;
     static const unsigned int UNITS = DEVICES::Length;
 
     static const bool enabled = (Traits<Build>::NODES > 1) && (UNITS > 0);
@@ -185,8 +182,8 @@ template<> struct Traits<C905>: public Traits<Machine_Common>
 template<> struct Traits<RTL8139>: public Traits<Machine_Common>
 {
     static const unsigned int UNITS = Traits<Ethernet>::DEVICES::Count<RTL8139>::Result;
-    static const unsigned int SEND_BUFFERS = 4;
-    static const unsigned int RECEIVE_BUFFERS = 8192;
+    static const unsigned int SEND_BUFFERS = 4; // per unit
+    static const unsigned int RECEIVE_BUFFERS = 8192; // no descriptor, just a memory block of 8192 bits
 
     static const bool enabled = (Traits<Build>::NODES > 1) && (UNITS > 0);
     static const bool promiscuous = false;

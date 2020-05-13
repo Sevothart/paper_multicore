@@ -1,12 +1,14 @@
 // EPOS Scheduler Test Program
 
-#include <architecture/pmu.h>
+#include <architecture.h>
 #include <utility/random.h>
 #include <time.h>
 #include <synchronizer.h>
 #include <real-time.h>
 
 using namespace EPOS;
+
+constexpr PMU::Event Intel_Sandy_Bridge_PMU::_events[PMU::EVENTS];
 
 const unsigned int TESTS = 5;
 const unsigned int THREADS = 17; // number of periodic threads
@@ -79,11 +81,11 @@ int main()
     cout << "PMU Test (using a P-EDF application)\n" << endl;
     cout << "Using " << CPU::cores() << " CPUs" << endl;
 
-    PMU::config(0, PMU::INSTRUCTION);
-    PMU::config(1, PMU::DVS_CLOCK);
-    PMU::config(2, PMU::CLOCK);
-    PMU::config(3, PMU::CACHE_HIT);
-    PMU::config(4, PMU::BRANCH);
+    PMU::config(0, Traits_Tokens::COMMITED_INSTRUCTIONS);
+    PMU::config(1, Traits_Tokens::UNHALTED_REFERENCE_CYCLES_SB);
+    PMU::config(2, Traits_Tokens::CPU_CYCLES);
+    PMU::config(3, Traits_Tokens::CACHE_HITS_SB);
+    PMU::config(4, Traits_Tokens::BRANCHES);
     for(unsigned int j = 0; j < 5; j++) {
         for(unsigned int i = 0; i < PMU::CHANNELS; i++)
             PMU::start(i);
@@ -204,7 +206,7 @@ int job(unsigned int repetitions, int id)
 
     //perf.llc_misses();
     //perf.llc_hit();
-    PMU::config(0, PMU::LLC_MISS);
+    PMU::config(0, Traits_Tokens::LAST_LEVEL_CACHE_MISSES);
     c.reset();
 
     c.start();

@@ -23,6 +23,8 @@ class Thread
     friend class Alarm;                 // for lock()
     friend class System;                // for init()
     friend class IC;                    // for link() for priority ceiling
+    friend class Clerk<System>;         // for _statistics
+    friend class Scheduling_Criteria::PEDF;
 
 protected:
     static const bool smp = Traits<Thread>::smp;
@@ -62,6 +64,9 @@ public:
         IDLE    = Criterion::IDLE
     };
 
+    // Thread Queue
+    typedef Ordered_Queue<Thread, Criterion, Scheduler<Thread>::Element> Queue;
+
     // Thread Configuration
     // t = 0 => Task::self()
     // ss = 0 => user-level stack on an auto expand segment
@@ -76,8 +81,100 @@ public:
         unsigned int stack_size;
     };
 
-    // Thread Queue
-    typedef Ordered_Queue<Thread, Criterion, Scheduler<Thread>::Element> Queue;
+    // Thread Statistics (mostly for Monitor)
+    struct _Statistics {
+        _Statistics(): execution_time(0), last_execution(0), wcet(0), jobs(0), average_execution_time(0), hyperperiod_count_thread(0), period(0), captures(0), migrate_to(0), alarm_times(0), times_p_count(0), missed_deadlines(0) {}
+
+        // Thread Execution Time (limited to 32bits counting, a hyperperiod greater than 32bits is not supported)
+        TSC::Time_Stamp execution_time;
+        TSC::Time_Stamp last_execution;
+        TSC::Time_Stamp wcet;
+        unsigned int jobs;
+        TSC::Time_Stamp average_execution_time;
+        unsigned int hyperperiod_count_thread;
+        unsigned int period;
+        unsigned int captures; // TO_CHECK
+        unsigned int migrate_to;
+
+        // Dealine Miss count
+        Alarm * alarm_times;
+        unsigned int times_p_count;
+        unsigned int missed_deadlines;
+
+        // ANN
+        float input[COUNTOF(Traits<Monitor>::PMU_EVENTS)+COUNTOF(Traits<Monitor>::SYSTEM_EVENTS)-1];
+        float output;
+
+        // Per Thread PMU
+        unsigned long long thread_pmu_accumulated[COUNTOF(Traits<Monitor>::PMU_EVENTS)];
+        unsigned long long thread_pmu_last[COUNTOF(Traits<Monitor>::PMU_EVENTS)];
+        double variance[COUNTOF(Traits<Monitor>::PMU_EVENTS)];
+        double mean[COUNTOF(Traits<Monitor>::PMU_EVENTS)];
+
+        unsigned long long *thread_monitoring[COUNTOF(Traits<Monitor>::PMU_EVENTS)+COUNTOF(Traits<Monitor>::SYSTEM_EVENTS)];
+
+        // On Migration
+        static TSC::Time_Stamp hyperperiod[Traits<Build>::CPUS];              // recalculate, on _old_hyperperiod + hyperperiod update
+        static TSC::Time_Stamp wcet_cpu[Traits<Build>::CPUS];
+        static TSC::Time_Stamp last_hyperperiod[Traits<Build>::CPUS];      // wait for old hyperperiod and update
+        static unsigned int hyperperiod_count[Traits<Build>::CPUS];        // reset on next hyperperiod
+        static unsigned long long cpu_pmu_accumulated[Traits<Build>::CPUS][COUNTOF(Traits<Monitor>::PMU_EVENTS)];
+        static unsigned long long cpu_pmu_last[Traits<Build>::CPUS][COUNTOF(Traits<Monitor>::PMU_EVENTS)];
+        static bool cooldown[Traits<Build>::CPUS];
+
+        // ANN
+        static bool decrease_frequency[Traits<Build>::CPUS];
+        static bool to_learn[Traits<Build>::CPUS];
+        static bool prediction_ready[Traits<Build>::CPUS];
+        static Thread* threads_cpu[Traits<Build>::CPUS][5];
+        static unsigned int t_count_cpu[Traits<Build>::CPUS];
+
+        // ANN Logging // TO_CHECK
+        static bool votes[Traits<Build>::CPUS][Traits<Build>::EXPECTED_SIMULATION_TIME*2];
+        static unsigned int idle_time_vote[Traits<Build>::CPUS][Traits<Build>::EXPECTED_SIMULATION_TIME*2];
+        static float trains_err[Traits<Build>::CPUS][6][Traits<Monitor>::MAX_TRAINS*2];
+        static TSC::Time_Stamp overhead[Traits<Build>::CPUS][Traits<Build>::EXPECTED_SIMULATION_TIME*2];
+        static double max_variance[Traits<Build>::CPUS][Traits<Build>::EXPECTED_SIMULATION_TIME*2];
+        static unsigned int migration_hyperperiod[3];
+
+        // CPU Execution Time
+        static TSC::Time_Stamp hyperperiod_idle_time[Traits<Build>::CPUS]; //
+        static TSC::Time_Stamp idle_time[Traits<Build>::CPUS];
+        static TSC::Time_Stamp last_idle[Traits<Build>::CPUS];
+    };
+
+    union _Dummy_Statistics {
+        // Thread Execution Time (limited to 32bits counting, a hyperperiod greater than 32bits is not supported)
+        TSC::Time_Stamp execution_time;
+        TSC::Time_Stamp last_execution;
+        unsigned int jobs;
+        TSC::Time_Stamp average_execution_time;
+        unsigned int hyperperiod_count_thread;
+        unsigned int hyperperiod_jobs;
+
+        // Dealine Miss count
+        Alarm * alarm_times;
+        unsigned int times_p_count;
+        unsigned int missed_deadlines;
+
+        // Per Thread PMU
+        unsigned long long thread_pmu_accumulated[COUNTOF(Traits<Monitor>::PMU_EVENTS)];
+        unsigned long long thread_pmu_last[COUNTOF(Traits<Monitor>::PMU_EVENTS)];
+
+        // On Migration
+        static TSC::Time_Stamp hyperperiod[Traits<Build>::CPUS];              // recalculate, on _old_hyperperiod + hyperperiod update
+        static TSC::Time_Stamp last_hyperperiod[Traits<Build>::CPUS];      // wait for old hyperperiod and update
+        static unsigned int hyperperiod_count[Traits<Build>::CPUS];        // reset on next hyperperiod
+        static unsigned long long cpu_pmu_accumulated[Traits<Build>::CPUS][COUNTOF(Traits<Monitor>::PMU_EVENTS)];
+        static unsigned long long cpu_pmu_last[Traits<Build>::CPUS][COUNTOF(Traits<Monitor>::PMU_EVENTS)];
+        static bool cooldown[Traits<Build>::CPUS];
+
+        // CPU Execution Time
+        static TSC::Time_Stamp hyperperiod_idle_time[Traits<Build>::CPUS]; //
+        static TSC::Time_Stamp idle_time[Traits<Build>::CPUS];
+        static TSC::Time_Stamp last_idle[Traits<Build>::CPUS];
+    };
+    typedef IF<monitored, _Statistics, _Dummy_Statistics>::Result Statistics;
 
 public:
     template<typename ... Tn>
@@ -87,6 +184,7 @@ public:
     ~Thread();
 
     const volatile State & state() const { return _state; }
+    const volatile Statistics & statistics() const { return _statistics; }
 
     const volatile Criterion & priority() const { return _link.rank(); }
     void priority(const Criterion & p);
@@ -99,6 +197,7 @@ public:
     void resume();
 
     static Thread * volatile self() { return running(); }
+    static void reset_statistics();
     static void yield();
     static void exit(int status = 0);
 
@@ -114,12 +213,13 @@ protected:
     Criterion begin_isr(IC::Interrupt_Id i) {
         assert(_state == RUNNING);
         Criterion c = criterion();
-        _link.rank(Criterion::ISR + int(i));
+        _link = Queue::Element(this, Criterion(Criterion::ISR + int(i))); //;Criterion::ISR + int(i));
         return c;
     }
     void end_isr(IC::Interrupt_Id i, const Criterion & c) {
         assert(_state == RUNNING);
-        _link.rank(c);
+        _link = Queue::Element(this, c);
+        //_link.rank(c);
     }
 
     static Thread * volatile running() { return _scheduler.chosen(); }
@@ -153,6 +253,9 @@ protected:
 
 private:
     static void init();
+
+public:
+    Statistics _statistics;
 
 protected:
     Task * _task;

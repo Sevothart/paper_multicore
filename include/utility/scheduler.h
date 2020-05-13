@@ -7,6 +7,8 @@
 #include <utility/list.h>
 #include <machine/timer.h>
 
+#include <utility/fann.h>
+
 __BEGIN_UTIL
 
 // All scheduling criteria, or disciplines, must define operator int() with
@@ -51,6 +53,9 @@ namespace Scheduling_Criteria
         static const bool preemptive = true;
         static const unsigned int QUEUES = 1;
 
+        // FANN lib usage
+        static const bool learning = false;
+
     public:
         template <typename ... Tn>
         Priority(int p = NORMAL, Tn & ... an): _priority(p) {}
@@ -62,6 +67,10 @@ namespace Scheduling_Criteria
 
         void update() {}
         unsigned int queue() const { return 0; }
+
+        static bool charge();
+        static bool collect();
+        static bool award(bool hyperperiod);
 
     protected:
         volatile int _priority;
@@ -148,8 +157,7 @@ namespace Scheduling_Criteria
     class RT_Common: public Priority
     {
         static const bool srp_enabled = false;//Traits<Thread>::srp_enabled;
-
-        //MODIFIED BELLOW:
+        
         class Elector_Always {
             public: static bool eligible(const RT_Common * task) { return true; }
         };
@@ -161,11 +169,13 @@ namespace Scheduling_Criteria
         typedef IF<srp_enabled, Elector_SRP, Elector_Always>::Result Elector;
         
         bool eligible() const { return Elector::eligible(this); }
-        // until here.    
     protected:
         RT_Common(int p): Priority(p), _deadline(0), _period(0), _capacity(0) {} // Aperiodic
         RT_Common(int i, const Microsecond & d, const Microsecond & p, const Microsecond & c)
         : Priority(i), _deadline(d), _period(p), _capacity(c) {}
+
+    public:
+        const Microsecond period() { return _period;}
 
     public:
         Microsecond _deadline;
@@ -254,6 +264,8 @@ namespace Scheduling_Criteria
     {
     public:
         static const unsigned int QUEUES = Traits<Machine>::CPUS;
+        // FANN lib usage
+        static const bool learning = true;
 
     public:
         PEDF(int p = APERIODIC)
@@ -265,6 +277,10 @@ namespace Scheduling_Criteria
         using Variable_Queue::queue;
 
         static unsigned int current_queue() { return CPU::id(); }
+
+        static bool charge();
+        static bool collect();
+        static bool award(bool hyperperiod);
     };
 
     // Clustered Earliest Deadline First (multicore)

@@ -35,7 +35,7 @@ int main()
     }
 
     cout << "\n  -> Math::pow<float>(x, y):" << endl;
-    for(unsigned int y = 0; y < 3; y++) {
+    for(unsigned int y = 0; y < N; y++) {
         float x = Random::random() % 100;
         cout << "     pow(" << x << ", " << y << ") = " << Math::pow(x, y) << endl;
     }

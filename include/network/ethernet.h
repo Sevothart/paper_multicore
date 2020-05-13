@@ -95,6 +95,21 @@ public:
     typedef Data_Observed<Buffer, Protocol> Observed;
 
 
+    // Configuration parameters
+    struct Configuration
+    {
+        Configuration(): address(Address::NULL) {}
+
+        friend Debug & operator<<(Debug & db, const Configuration & c) {
+            db << "{addr=" << c.address
+               << "}";
+            return db;
+        }
+
+        Address address;
+    };
+
+
     // Meaningful statistics for Ethernet
     struct Statistics: public NIC_Common::Statistics
     {

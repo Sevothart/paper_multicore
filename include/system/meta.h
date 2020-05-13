@@ -75,6 +75,19 @@ template<typename T1, typename T2>
 struct MIN
 { typedef typename IF<sizeof(T1) < sizeof(T2), T1, T2>::Result Result; };
 
+
+// Constant Arrays
+template<unsigned int N, typename T>
+constexpr unsigned int COUNTOF(const T (&)[N]) { return N; }
+
+template<unsigned int N, typename T>
+constexpr bool INARRAY(const T (& array)[N], const T & value) {
+    for(const T & v : array)
+        if(value == v) return true;
+    return false;
+}
+
+
 // SIZEOF Type Package
 template<typename ... Tn>
 struct SIZEOF
@@ -82,6 +95,7 @@ struct SIZEOF
 template<typename T1, typename ... Tn>
 struct SIZEOF<T1, Tn ...>
 { static const unsigned int Result = sizeof(T1) + SIZEOF<Tn ...>::Result ; };
+
 
 // LIST of Types
 template<typename ... Tn> class LIST;
@@ -147,15 +161,15 @@ public:
 
 
 // LIST of Templates
-template<template<typename T> class ... Tn> class TLIST;
+template<template<typename T> class ... Tn> class ALIST;
 template<template<typename T> class T1, template<typename T> class T2, template<typename T> class ... Tn>
-class TLIST<T1, T2, Tn ...>
+class ALIST<T1, T2, Tn ...>
 {
 public:
-    enum { Length = TLIST<Tn ...>::Length + 1 };
+    enum { Length = ALIST<Tn ...>::Length + 1 };
 
     template<typename T>
-    struct Recur: public T1<T>, public TLIST<T2, Tn ...>::template Recur<T>
+    struct Recur: public T1<T>, public ALIST<T2, Tn ...>::template Recur<T>
     {
         void enter() { T1<T>::enter(); T2<T>::enter(); }
         void leave() { T1<T>::leave(); T2<T>::leave(); }
@@ -164,13 +178,13 @@ public:
     };
 };
 template<template<typename T> class T1, template<typename T> class ... Tn>
-class TLIST<T1, Tn ...>
+class ALIST<T1, Tn ...>
 {
 public:
-    enum { Length = TLIST<Tn ...>::Length + 1 };
+    enum { Length = ALIST<Tn ...>::Length + 1 };
 
     template<typename T>
-    struct Recur: public T1<T>, public TLIST<Tn ...>::template Recur<T>
+    struct Recur: public T1<T>, public ALIST<Tn ...>::template Recur<T>
     {
         void enter() { T1<T>::enter(); }
         void leave() { T1<T>::leave(); }
@@ -180,7 +194,7 @@ public:
 };
 
 template<>
-class TLIST<>
+class ALIST<>
 {
 public:
     enum { Length = 0 };
@@ -223,6 +237,7 @@ void DESERIALIZE(char * buf, int index, T && a, Tn && ... an) {
     __builtin_memcpy(&a, &buf[index], sizeof(T));
     DESERIALIZE(buf, index + sizeof(T), an ...);
 }
+
 
 // Returns the UNSIGNED counterpart of primitive type T
 template<typename T>

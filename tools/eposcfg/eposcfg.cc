@@ -347,8 +347,7 @@ void populate_strings()
     if(Traits<RTL8139>::enabled)        enable_component("RTL8139");
     if(Traits<C905>::enabled)           enable_component("C905");
     if(Traits<E100>::enabled)           enable_component("E100");
-    if(Traits<CC2538>::enabled)         enable_component("CC2538");
-    if(Traits<AT86RF>::enabled)         enable_component("AT86RF");
+    if(Traits<IEEE802_15_4_NIC>::enabled)       enable_component("IEEE802_15_4_NIC");
     if(Traits<Ethernet_NIC>::enabled)   enable_component("Ethernet_NIC");
 
     // Enabled components

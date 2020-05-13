@@ -49,8 +49,6 @@ def hex_to_msg(line):
     global sequence_number
     global last_address
 
-    #print(line)
-
     if line[-1:] == '\n':
         line = line[:-1]
 
@@ -92,8 +90,9 @@ def hex_to_msg(line):
             i+=8 # in Python, the variable holds the last valid value of the loop
         else:
             i = 0
+        #print(line,"i=", i)
 
-        if (i < byte_count*2) and (byte_count*2 - i < 4):
+        if (i < byte_count*2) and (byte_count*2 - i <= 4):
             if address > last_address:
                 msg = struct.pack('<H', sequence_number) # unsigned little-endian short
                 sequence_number += 1
@@ -117,7 +116,9 @@ def hex_to_msg(line):
                 msg += b'w' # write message
                 print(" Address: ", hex(address), end='\r')
                 d = struct.pack('>H',int(data[i:i+4], 16))
-                d += struct.pack('>H',int(data[i+4:], 16))
+                #print(data)
+                #print(data[i:], ", i=", i)
+                d += struct.pack('>H',int(data[i+4:i+8], 16))
                 #print("Data: ", d)
                 msg += struct.pack('<I',address) # unsigned little-endian integer
                 msg += d

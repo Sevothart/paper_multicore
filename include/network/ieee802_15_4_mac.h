@@ -7,6 +7,8 @@
 #include <utility/math.h>
 #include <network/ieee802_15_4.h>
 
+#ifdef __ieee802_15_4__
+
 __BEGIN_SYS
 
 template<typename Radio>
@@ -132,5 +134,7 @@ private:
 };
 
 __END_SYS
+
+#endif
 
 #endif

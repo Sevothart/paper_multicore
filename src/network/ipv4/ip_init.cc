@@ -1,32 +1,31 @@
 // EPOS IP Protocol Initialization
 
+#include <network/network.h>
 #include <network/ipv4/ip.h>
+#include <network/ipv4/icmp.h>
+#include <network/ipv4/udp.h>
+#include <network/ipv4/tcp.h>
 
 #ifdef __ipv4__
 
 __BEGIN_SYS
 
-template<unsigned int UNIT>
-IP::IP(unsigned int unit)
-: _nic(Traits<Ethernet>::DEVICES::Get<UNIT>::Result::get(unit)),
-  _arp(_nic, this),
-  _address(Traits<IP>::Config<UNIT>::ADDRESS),
-  _netmask(Traits<IP>::Config<UNIT>::NETMASK),
-  _broadcast((_address & _netmask) | ~_netmask),
-  _gateway(Traits<IP>::Config<UNIT>::GATEWAY)
+IP::IP(NIC<Ethernet> * nic, unsigned int config, const Address & a, const Address & m, const Address & g)
+: _nic(nic), _arp(_nic, this), _address(a), _netmask(m), _broadcast((_address & _netmask) | ~_netmask), _gateway(g)
 {
-    db<IP>(TRC) << "IP::IP(nic=" << _nic << ") => " << this << endl;
+    db<IP>(TRC) << "IP::IP(nic=" << _nic << ",ip=" << a << ",nm=" << m << ",gw=" << g << ",cfg=" << config << ") => " << this << endl;
 
     _nic->attach(this, NIC<Ethernet>::PROTO_IP);
 
-    if(Traits<IP>::Config<UNIT>::TYPE == Traits<IP>::MAC)
-        config_by_mac();
-    else if(Traits<IP>::Config<UNIT>::TYPE == Traits<IP>::INFO)
-        config_by_info();
-    else if(Traits<IP>::Config<UNIT>::TYPE == Traits<IP>::RARP)
-        config_by_rarp();
-    else if(Traits<IP>::Config<UNIT>::TYPE == Traits<IP>::DHCP)
-        config_by_dhcp();
+    switch(config) {
+    case Traits<IP>::STATIC:                    break;
+    case Traits<IP>::MAC:    config_by_mac();   break;
+    case Traits<IP>::INFO:   config_by_info();  break;
+//    case Traits<IP>::RARP:   config_by_rarp();  break;
+    case Traits<IP>::DHCP:   config_by_dhcp();  break;
+    default:
+        db<IP>(ERR) << "IP::IP:config " << config << " not supported" << endl;
+    }
 
     _router.insert(_nic, this, &_arp, _address & _netmask, _address, _netmask);
 
@@ -36,11 +35,17 @@ IP::IP(unsigned int unit)
     }
 }
 
-void IP::init(unsigned int unit)
+void IP::init()
 {
-    db<Init, IP>(TRC) << "IP::init(u=" << unit << ")" << endl;
+    db<Init, IP>(TRC) << "IP::init()" << endl;
+    init_helper<0>();
 
-    _networks[unit] = new (SYSTEM) IP(unit);
+    if(Traits<_SYS::ICMP>::enabled)
+        new (SYSTEM) _SYS::ICMP;
+    if(Traits<_SYS::UDP>::enabled)
+        new (SYSTEM) _SYS::UDP;
+    if(Traits<_SYS::TCP>::enabled)
+        new (SYSTEM) _SYS::TCP;
 }
 
 __END_SYS

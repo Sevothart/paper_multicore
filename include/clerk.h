@@ -3,12 +3,14 @@
 #ifndef __clerk_h
 #define __clerk_h
 
+#include <utility/convert.h>
 #include <architecture.h>
 #include <machine.h>
 #include <system.h>
 #include <time.h>
 #include <transducer.h>
 #include <process.h>
+#include <utility/fann.h>
 
 extern "C" { void __pre_main(); }
 
@@ -18,6 +20,7 @@ class Monitor
 {
     friend void ::__pre_main(); // for init()
     friend class Thread;        // for init()
+    friend class FANN_EPOS;
 
 protected:
     typedef TSC::Time_Stamp Time_Stamp;
@@ -28,35 +31,141 @@ protected:
     static const unsigned int AVERAGE_ACCEPTED_DRIFT = 2;         // +/- 2 * average
     static const unsigned int TIME_ACCEPTED_DRIFT = 2;            // ts difference between captures +/- 2 * frequency
     static const unsigned int MINIMUN_SNAPSHOTS_TO_VALIDATE = 20; // start verification if #SNAPSHOTS greater than this value
+public:
+    static const unsigned int TOTAL_EVENTS_MONITORED = COUNTOF(Traits<Monitor>::PMU_EVENTS) + COUNTOF(Traits<Monitor>::SYSTEM_EVENTS);
 
 public:
     Monitor(): _captures(0), _t0(TSC::time_stamp()) {}
     virtual ~Monitor() {}
 
+    virtual unsigned int last_capture(unsigned int index) = 0;
+    virtual Time_Stamp last_time_stamp() = 0;
+    virtual unsigned int get_capture(unsigned int i) = 0;
+    virtual Time_Stamp get_capture_ts(unsigned int i) = 0;
+    virtual unsigned int captures() = 0;
+
     virtual void capture() = 0;
-    virtual OStream & operator<<(OStream & os) = 0;
+    virtual unsigned long long read() = 0;
+    virtual void start() = 0;
+    virtual void stop() = 0;
+    virtual void reset() = 0;
+    virtual void reset_accounting_clerk() = 0;
+    virtual void print(OStream & os) const = 0;
 
     static void run();
 
-    static void process_batch() {
-        db<Monitor>(TRC) << "Monitor::process_batch()" << endl;
+    static unsigned int get_ann_out (unsigned int i) {
+        if (i < ann_captures[CPU::id()] && i >= 0) {
+            return ann_out[CPU::id()][i];
+        }
+        return 1;
+    }
 
+    static unsigned int get_ann_captures() {
+        return ann_captures[CPU::id()];
+    }
+
+    static void reset_accounting() {
+        process_batch();
+        for(unsigned int n = 0; n < CPU::cores(); n++) {
+            for(List::Iterator it = _monitors[n].begin(); it != _monitors[n].end(); it++) {
+                it->object()->reset_accounting_clerk();
+            }
+        }
+        Thread::reset_statistics();
+    }
+
+    static void process_batch() {
+        disable_captures();
+        OStream os; // we are using OStream instead of db to avoid <CPU_ID> print in each line.
+        db<Monitor>(TRC) << "Monitor::process_batch()" << endl;
+        os << "FINAL_TS<" << count2us(_monitors[0].begin()->object()->time_since_t0()) << ">" << endl;
+        os << "ANN-OUT" << endl;
         unsigned int i;
+
+        if (Thread::Criterion::learning) {
+            os << "MIGRATION=" << Thread::_Statistics::migration_hyperperiod[0] << "," << Thread::_Statistics::migration_hyperperiod[1] << ","<< Thread::_Statistics::migration_hyperperiod[2] << endl;
+            os << "ALLOCATION_M=x;x;x" << endl;
+            os << "Votes:" << endl;
+            for (unsigned int j = 0; j < Traits<Build>::EXPECTED_SIMULATION_TIME*2; ++j)
+            {
+                for (i = 1; i < Traits<Build>::CPUS; ++i)
+                {
+                    os << "voting cpu[" << i << ",i" << j << "]=" << Thread::_Statistics::votes[i][j] 
+                         << ",idle=" << Thread::_Statistics::idle_time_vote[i][j] 
+                         << ",Overhead=" << Thread::_Statistics::overhead[i][j]
+                         << ",variance=" << Thread::_Statistics::max_variance[i][j] << endl;
+                }
+            }
+
+            os << "Trains:" << endl;
+            for (unsigned int j = 0; j < 6; ++j)
+            {
+                for (i = 1; i < Traits<Build>::CPUS; ++i)
+                {
+                    os << "train cpu[" << i << ",t" << j << "]=\n";
+                    for (unsigned int k = 0; k < 4*2*2; ++k) // TODO threshold at traits
+                    {
+                        os << Thread::_Statistics::trains_err[i][j][k] << "\n";
+                    } 
+                }
+            }
+        }
+
+        os << "begin_data" << endl;
         for(unsigned int n = 0; n < CPU::cores(); n++) {
             i = 0;
-            db<Monitor>(WRN) << "CPU" << n << endl;
+            os << "CPU" << n << endl;
             for(List::Iterator it = _monitors[n].begin(); it != _monitors[n].end(); it++) {
-                db<Monitor>(WRN) << "TS," << i << endl;
-                db<Monitor>(WRN) << it->object();
+                os << "TS," << i << endl;
+                os << *it->object();
                 i++;
             }
         }
+        os << "end_data" << endl;
+    }
+
+    // Only start capturing when enters in main (enabled by CPU 0 at the end of init, which is only called at pre_init)
+    static void enable_captures(Time_Stamp t0) { 
+        // Adjust each Clerk Monitor instantiated.
+        for(unsigned int n = 0; n < CPU::cores(); n++) {
+            for(List::Iterator it = _monitors[n].begin(); it != _monitors[n].end(); it++) {
+                 // Starts t0 with current ts
+                it->object()->_t0 = t0;
+            }
+        }
+        _enable = true;
+    }
+
+    static bool is_enable() {
+        return _enable;
+    }
+
+    static void disable_captures() { _enable = false; }
+
+    friend OStream & operator<<(OStream & os, const Monitor & m) {
+        m.print(os);
+        return os;
     }
 
 protected:
-    Time_Stamp time_stamp() { return TSC::time_stamp() - _t0; }
+    inline Time_Stamp time_since_t0() { return TSC::time_stamp() - _t0; }
+
+    static inline Time_Stamp us2count(Microsecond t) {
+        return Convert::us2count<Time_Stamp, Time_Base>(TSC::frequency(), t);
+    }
+
+    static inline Microsecond count2us(Time_Stamp t) {
+        return Convert::count2us<Hertz, Time_Stamp, Time_Base>(TSC::frequency(), t);
+    }
 
 private:
+    template<unsigned int CHANNEL>
+    static void init_system_monitoring();
+
+    template<unsigned int CHANNEL>
+    static void init_pmu_monitoring();
+
     static void init();
 
 protected:
@@ -64,7 +173,13 @@ protected:
     Time_Stamp _t0;
 
 private:
+    static bool _enable;
+
+public:
     static Simple_List<Monitor> _monitors[Traits<Build>::CPUS];
+    static struct FANN_EPOS::fann *ann[Traits<Build>::CPUS];
+    static unsigned int ann_out[Traits<Build>::CPUS][100*30];
+    static unsigned int ann_captures[Traits<Build>::CPUS];
 };
 
 
@@ -72,9 +187,6 @@ template<typename Clerk>
 class Clerk_Monitor: public Monitor
 {
     friend class Monitor;
-
-private:
-//    static const unsigned int PERIOD = (FREQUENCY > 0) ? 1000000 / FREQUENCY : -1UL;
 
 public:
     typedef typename Clerk::Data Data;
@@ -86,11 +198,9 @@ public:
     };
 
 public:
-    Clerk_Monitor(Clerk * clerk, const Hertz & frequency): _clerk(clerk), _frequency(frequency), _period((frequency > 0) ? 1000000 / frequency : -1UL), _last_capture(0), _average(0), _link(this) {
+    Clerk_Monitor(Clerk * clerk, const Hertz frequency, bool data_to_us = false): _clerk(clerk), _frequency(frequency), _period(us2count((frequency > 0) ? 1000000 / frequency : -1UL)), _last_capture(0), _average(0), _data_to_us(data_to_us), _link(this) {
         db<Clerk>(TRC) << "Clerk_Monitor(clerk=" << clerk << ") => " << this << ")" << endl;
         _snapshots = Traits<Build>::EXPECTED_SIMULATION_TIME * frequency;
-        // if((_snapshots * sizeof(Snapshot)) > Traits<Monitor>::MAX_BUFFER_SIZE)
-        //     _snapshots = Traits<Monitor>::MAX_BUFFER_SIZE * sizeof(Snapshot);
         _buffer = new (SYSTEM) Snapshot[_snapshots];
 
         _monitors[CPU::id()].insert(&_link);
@@ -104,14 +214,78 @@ public:
 
     unsigned int captures() { return _captures; }
 
+    unsigned int last_capture(unsigned int index) {
+        // handle reset (unsigned long long) 0xffffffff)
+        if (index >= COUNTOF(Traits<Monitor>::PMU_EVENTS))
+            return (FANN_EPOS::fann_type)_buffer[_captures-1].data;
+        if(_captures >= 2) {
+            // buffer store a unsigned long long but stores a int
+            long long aux = ((unsigned long long)_buffer[_captures-1].data) - _buffer[_captures-2].data;
+            if (aux < 0) {
+                return ((((unsigned long long) 0xffffffff) - _buffer[_captures-2].data) + _buffer[_captures-1].data);
+            }
+            return aux;
+        }
+        return -1;
+    }
+
+    Time_Stamp last_time_stamp() {
+        if (_captures > 0)
+            return _buffer[_captures-1].ts;
+        return 0;
+    }
+
+    unsigned int get_capture(unsigned int i ) { // fix
+        if (i < _captures && i >= 0)
+            return _buffer[i].data;
+        return 0;
+    }
+
+    Time_Stamp get_capture_ts(unsigned int i ) {
+        if (i < _captures && i >= 0)
+            return _buffer[i].ts;
+        return 0;
+    }
+
     void capture() {
-        Time_Stamp ts = time_stamp();
-        if(_captures < _snapshots && ((ts - _last_capture) > _period)) {
+        Time_Stamp ts = time_since_t0();
+        if(_captures < _snapshots && ((ts - _last_capture) >= _period)) {
             _buffer[_captures].ts = ts;
             _buffer[_captures].data = _clerk->read();
+            // a counter reset happens frequently depending on the selected feature and its capacity (32 or 64 bits)
             _average = (_average * _captures + _buffer[_captures].data) / (_captures + 1);
             _captures++;
             _last_capture = ts;
+        }
+    }
+
+    unsigned long long read() {
+        return (unsigned long long) _clerk->read();
+    }
+
+    void start() {
+        _clerk->start();
+    }
+
+    void stop() {
+        _clerk->stop();
+    }
+
+    void reset() {
+        _clerk->reset();
+    }
+
+    void reset_accounting_clerk() {
+        _captures = 0;
+    }
+
+    void print(OStream & os) const {
+        if (_data_to_us) {
+            for(unsigned int i = 0; i < _captures; i++)
+                os << count2us(_buffer[i].ts) << "," << count2us(_buffer[i].data) << endl;
+        } else {
+            for(unsigned int i = 0; i < _captures; i++)
+                os << count2us(_buffer[i].ts) << "," << _buffer[i].data << endl;
         }
     }
 
@@ -170,11 +344,11 @@ public:
                 return false;
 
             // second verification
-            if((s.ts - _frequency) < 0)
-                time_deviation = -1 * (s.ts - _frequency);
+            if((s.ts - _period) < 0)
+                time_deviation = -1 * (s.ts - _period);
             else
-                time_deviation = s.ts - _frequency;
-            if(time_deviation > TIME_ACCEPTED_DRIFT * _frequency)
+                time_deviation = s.ts - _period;
+            if(time_deviation > TIME_ACCEPTED_DRIFT * _period)
                 return false;
 
             // third verification
@@ -188,12 +362,6 @@ public:
         return true;
     }
 
-    OStream & operator<<(OStream & os) {
-        for(unsigned int i = 0; i < _captures; i++)
-            os << _buffer[i].ts << "," << _buffer[i].data << endl;
-        return os;
-    }
-
 private:
     Clerk * _clerk;
     Hertz _frequency;
@@ -202,23 +370,21 @@ private:
     Data _average;
     unsigned int _snapshots;
     Snapshot * _buffer;
+    bool _data_to_us;
     List::Element _link;
 };
 
 
 // Transducer Clerk
-enum Transducer_Clerk_Events {
-    TEMPERATURE
-};
-
 template<typename T>
 class Clerk: private T
 {
 public:
+    using Event = Traits_Tokens::Transducer_Event;
     typedef typename T::Value Data;
 
 public:
-    Clerk(const Transducer_Clerk_Events & event, unsigned int dev, const Hertz frequency = 0, bool monitored = false): _dev(dev), _monitor(monitored ? new (SYSTEM) Clerk_Monitor<Clerk>(this, frequency) : 0) {}
+    Clerk(const Event event, unsigned int dev, const Hertz frequency = 0, bool monitored = false): _dev(dev), _monitor(monitored ? new (SYSTEM) Clerk_Monitor<Clerk>(this, frequency) : 0) {}
     ~Clerk() {}
 
     Data read() { return T::sense(_dev); }
@@ -234,31 +400,39 @@ private:
 
 
 // System Clerk
-enum System_Clerk_Event {
-    ELAPSED_TIME,
-    DEADLINE_MISS,
-    RUNNING_THREAD_ID,
-    SYSTEM_CLOCK,
-    CPU_TEMPERATURE,
-    CPU_VOLTAGE
-};
-
 template<>
 class Clerk<System>
 {
 public:
-    typedef int Data;
+    using Event = Traits_Tokens::System_Event;
+    typedef unsigned long long Data;
 
 public:
-    Clerk(const System_Clerk_Event & event, const Hertz frequency = 0, bool monitored = false): _event(event), _monitor(monitored ? new (SYSTEM) Clerk_Monitor<Clerk>(this, frequency) : 0) {}
+    Clerk(const Event event, const Hertz frequency = 0, bool monitored = false): _event(event), 
+        _monitor(monitored ? new (SYSTEM) Clerk_Monitor<Clerk>(this, frequency, event == Event::THREAD_WCET || event == Event::CPU_WCET || event == Event::THREAD_EXECUTION_TIME || event == Event::CPU_EXECUTION_TIME) : 0) {}
     ~Clerk() {}
 
     Data read() {
+        Thread * t = Thread::self();
         switch(_event) {
-        case ELAPSED_TIME:
+        case Event::ELAPSED_TIME:
             return Alarm::elapsed();
-        case DEADLINE_MISS:
-            return 0;
+        case Event::DEADLINE_MISSES:
+            return t->_statistics.missed_deadlines;
+        case Event::RUNNING_THREAD:
+            return reinterpret_cast<volatile unsigned int>(t);
+        case Event::THREAD_EXECUTION_TIME:
+            if((t->priority() > Thread::Criterion::PERIODIC) && (t->priority() < Thread::Criterion::APERIODIC)) // real-time
+                return t->_statistics.jobs ? t->_statistics.average_execution_time / t->_statistics.jobs : t->_statistics.execution_time;
+            return t->_statistics.execution_time;
+        case Event::CPU_EXECUTION_TIME:
+            return Thread::_Statistics::hyperperiod_idle_time[CPU::id()];
+        case Event::CPU_FREQUENCY:
+            return Machine::frequency();
+        case Event::CPU_WCET:
+            return Thread::_Statistics::wcet_cpu[CPU::id()]; 
+        case Event::THREAD_WCET:
+            return t->_statistics.wcet;
         default:
             return 0;
         }
@@ -266,10 +440,32 @@ public:
 
     void start() {}
     void stop() {}
-    void reset() {}
+    void reset() {
+        Thread* t = Thread::self();
+        switch(_event) {
+        case Event::ELAPSED_TIME:
+            break;
+        case Event::DEADLINE_MISSES:
+            t->_statistics.missed_deadlines = 0;
+            break;
+        case Event::RUNNING_THREAD:
+            break;
+        case Event::THREAD_EXECUTION_TIME:
+            t->_statistics.execution_time = 0;
+            t->_statistics.jobs = 0;
+            t->_statistics.average_execution_time = 0;
+            break;
+        case Event::CPU_EXECUTION_TIME:
+            Thread::_Statistics::idle_time[CPU::id()] = 0;
+            Thread::_Statistics::hyperperiod_idle_time[CPU::id()] = 0;
+            break;
+        default:
+            break;
+        }
+    }
 
 private:
-    System_Clerk_Event _event;
+    Event _event;
     Clerk_Monitor<Clerk> * _monitor;
 };
 
@@ -277,97 +473,32 @@ private:
 #ifdef __PMU_H
 
 // PMU Clerk
-enum PMU_Clerk_Event {
-    CLOCK                               = PMU_Common::CLOCK,
-    DVS_CLOCK                           = PMU_Common::DVS_CLOCK,
-    INSTRUCTION                         = PMU_Common::INSTRUCTION,
-    BRANCH                              = PMU_Common::BRANCH,
-    IMMEDIATE_BRANCH                    = PMU_Common::IMMEDIATE_BRANCH,
-    UNALIGNED_LOAD_STORE                = PMU_Common::UNALIGNED_LOAD_STORE,
-    BRANCH_MISS                         = PMU_Common::BRANCH_MISS,
-    L1_HIT                              = PMU_Common::L1_HIT,
-    L2_HIT                              = PMU_Common::L2_HIT,
-    L3_HIT                              = PMU_Common::L3_HIT,
-    LLC_HIT                             = PMU_Common::LLC_HIT,
-    CACHE_HIT                           = PMU_Common::CACHE_HIT,
-    L1_MISS                             = PMU_Common::L1_MISS,
-    L2_MISS                             = PMU_Common::L2_MISS,
-    L3_MISS                             = PMU_Common::L3_MISS,
-    LLC_MISS                            = PMU_Common::LLC_MISS,
-    CACHE_MISS                          = PMU_Common::CACHE_MISS,
-    LLC_HITM                            = PMU_Common::LLC_HITM,
-    DCACHE_STALL                        = PMU_Common::DCACHE_STALL,
-    L1I_MISS                            = PMU_Common::L1I_MISS,
-    L1I_TLB_MISS                        = PMU_Common::L1I_TLB_MISS,
-    L1D_TLB_MISS                        = PMU_Common::L1D_TLB_MISS,
-    EXCEPTION_TAKEN                     = PMU_Common::EXCEPTION_TAKEN,
-    PREDICTABLE_BRANCH_EXECUTED         = PMU_Common::PREDICTABLE_BRANCH_EXECUTED,
-    DATA_MEMORY_ACCESS                  = PMU_Common::DATA_MEMORY_ACCESS,
-    L1I_HIT                             = PMU_Common::L1I_HIT,
-    L1D_WRITEBACK                       = PMU_Common::L1D_WRITEBACK,
-    L2D_WRITEBACK                       = PMU_Common::L2D_WRITEBACK,
-    BUS_ACCESS                          = PMU_Common::BUS_ACCESS,
-    CHAIN                               = PMU_Common::CHAIN,
-    LOCAL_MEMORY_ERROR                  = PMU_Common::LOCAL_MEMORY_ERROR,
-    INSTRUCTION_SPECULATIVELY_EXECUTED  = PMU_Common::INSTRUCTION_SPECULATIVELY_EXECUTED,
-    BUS_CYCLE                           = PMU_Common::BUS_CYCLE,
-    JAZELLE_BACKWARDS_BRANCHES_EXECUTED = PMU_Common::JAZELLE_BACKWARDS_BRANCHES_EXECUTED,
-    COHERENT_LINEFILL_MISS              = PMU_Common::COHERENT_LINEFILL_MISS,
-    COHERENT_LINEFILL_HIT               = PMU_Common::COHERENT_LINEFILL_HIT,
-    ICACHE_DEPENDENT_STALL_CYCLES       = PMU_Common::ICACHE_DEPENDENT_STALL_CYCLES,
-    DCACHE_DEPENDENT_STALL_CYCLES       = PMU_Common::DCACHE_DEPENDENT_STALL_CYCLES,
-    MAIN_TLB_MISS_STALL_CYCLES          = PMU_Common::MAIN_TLB_MISS_STALL_CYCLES,
-    STREX_PASSED                        = PMU_Common::STREX_PASSED,
-    STREX_FAILED                        = PMU_Common::STREX_FAILED,
-    DATA_EVICTION                       = PMU_Common::DATA_EVICTION,
-    ISSUE_DOESNT_DISPATCH               = PMU_Common::ISSUE_DOESNT_DISPATCH,
-    ISSUE_EMPTY                         = PMU_Common::ISSUE_EMPTY,
-    ISSUE_CORE_RENAMING                 = PMU_Common::ISSUE_CORE_RENAMING,
-    PREDICTABLE_FUNCTION_RETURNS        = PMU_Common::PREDICTABLE_FUNCTION_RETURNS,
-    MAIN_EXECUTION_UNIT_RETURNS         = PMU_Common::MAIN_EXECUTION_UNIT_RETURNS,
-    SECOND_EXECUTION_UNIT_RETURNS       = PMU_Common::SECOND_EXECUTION_UNIT_RETURNS,
-    LOAD_STORE_INSTRUCTIONS             = PMU_Common::LOAD_STORE_INSTRUCTIONS,
-    FLOATING_POINT_INSTRUCTIONS         = PMU_Common::FLOATING_POINT_INSTRUCTIONS,
-    PROCESSOR_STALL_PLD                 = PMU_Common::PROCESSOR_STALL_PLD,
-    PROCESSOR_STALL_WRITE_MEMORY        = PMU_Common::PROCESSOR_STALL_WRITE_MEMORY,
-    PROCESSOR_STALL_ITLB_MISS           = PMU_Common::PROCESSOR_STALL_ITLB_MISS,
-    PROCESSOR_STALL_DTLB_MISS           = PMU_Common::PROCESSOR_STALL_DTLB_MISS,
-    PROCESSOR_STALL_IUTLB_MISS          = PMU_Common::PROCESSOR_STALL_IUTLB_MISS,
-    PROCESSOR_STALL_DUTLB_MISS          = PMU_Common::PROCESSOR_STALL_DUTLB_MISS,
-    PROCESSOR_STALL_DMB                 = PMU_Common::PROCESSOR_STALL_DMB,
-    INTEGER_CLOCK_ENABLED               = PMU_Common::INTEGER_CLOCK_ENABLED,
-    DATA_ENGINE_CLOCK_ENABLED           = PMU_Common::DATA_ENGINE_CLOCK_ENABLED,
-    ISB_INSTRUCTIONS                    = PMU_Common::ISB_INSTRUCTIONS,
-    DSB_INSTRUCTIONS                    = PMU_Common::DSB_INSTRUCTIONS,
-    DMB_INSTRUCTIONS                    = PMU_Common::DMB_INSTRUCTIONS,
-    EXTERNAL_INTERRUPTS                 = PMU_Common::EXTERNAL_INTERRUPTS,
-    PLE_CACHE_LINE_REQUEST_COMPLETED    = PMU_Common::PLE_CACHE_LINE_REQUEST_COMPLETED,
-    PLE_CACHE_LINE_REQUEST_SKIPPED      = PMU_Common::PLE_CACHE_LINE_REQUEST_SKIPPED,
-    PLE_FIFO_FLUSH                      = PMU_Common::PLE_FIFO_FLUSH,
-    PLE_REQUEST_COMPLETED               = PMU_Common::PLE_REQUEST_COMPLETED,
-    PLE_FIFO_OVERFLOW                   = PMU_Common::PLE_FIFO_OVERFLOW,
-    PLE_REQUEST_PROGRAMMED              = PMU_Common::PLE_REQUEST_PROGRAMMED,
-    EVENTS                              = PMU_Common::EVENTS
-};
-
 template<>
 class Clerk<PMU>: private PMU
 {
 public:
     using PMU::CHANNELS;
+    using PMU::EVENTS;
+    using PMU::FIXED;
     typedef PMU::Count Data;
+    typedef PMU::Event Event;
 
 public:
-    Clerk(const PMU_Clerk_Event & event, const Hertz frequency = 0, bool monitored = false) {
-        for(_channel = 0; _in_use[CPU::id()][_channel]; _channel++);
+    Clerk(Event event, const Hertz frequency = 0, bool monitored = false) {
+        if((FIXED > 0) && (event < FIXED)) {
+            _channel = event;
+        } else {
+            for(_channel = FIXED; _in_use[CPU::id()][_channel] && _channel < CHANNELS; _channel++);
+        }
         if(_channel != CHANNELS) {
             _in_use[CPU::id()][_channel] = true;
-            PMU::config(_channel, reinterpret_cast<const Event &>(event));
+            PMU::config(_channel, event);
 
             if(monitored)
                 new (SYSTEM) Clerk_Monitor<Clerk>(this, frequency);
         }
     }
+
     ~Clerk() {
         if(_channel < CHANNELS) {
             PMU::stop(_channel);
@@ -386,7 +517,33 @@ private:
     static bool _in_use[Traits<Build>::CPUS][CHANNELS];
 };
 
+template<unsigned int CHANNEL>
+inline void Monitor::init_pmu_monitoring() {
+    if(Traits<Monitor>::PMU_EVENTS_FREQUENCIES[CHANNEL]) {
+        if(CPU::id() == 0)
+            db<Monitor>(TRC) << "Monitor::init: monitoring PMU event " << Traits<Monitor>::PMU_EVENTS[CHANNEL] << " at " << Traits<Monitor>::PMU_EVENTS_FREQUENCIES[CHANNEL] << " Hz" << endl;
+        new (SYSTEM) Clerk<PMU>(Traits<Monitor>::PMU_EVENTS[CHANNEL], Traits<Monitor>::PMU_EVENTS_FREQUENCIES[CHANNEL], true);
+    }
+
+    init_pmu_monitoring<CHANNEL + 1>();
+};
+
+template<>
+inline void Monitor::init_pmu_monitoring<COUNTOF(Traits<Monitor>::PMU_EVENTS)>() {}
+
 #endif
+
+template<unsigned int CHANNEL>
+inline void Monitor::init_system_monitoring() {
+    if(Traits<Monitor>::SYSTEM_EVENTS_FREQUENCIES[CHANNEL]) {
+            db<Monitor>(TRC) << "Monitor::init: monitoring system event " << Traits<Monitor>::SYSTEM_EVENTS[CHANNEL] << " at " << Traits<Monitor>::SYSTEM_EVENTS_FREQUENCIES[CHANNEL] << " Hz" << endl;
+        new (SYSTEM) Clerk<System>(Traits<Monitor>::SYSTEM_EVENTS[CHANNEL], Traits<Monitor>::SYSTEM_EVENTS_FREQUENCIES[CHANNEL], true);
+    }
+    init_system_monitoring<CHANNEL + 1>();
+};
+
+template<>
+inline void Monitor::init_system_monitoring<COUNTOF(Traits<Monitor>::SYSTEM_EVENTS)>() {}
 
 __END_SYS
 

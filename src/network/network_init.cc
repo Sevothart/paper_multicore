@@ -6,23 +6,24 @@
 
 __BEGIN_SYS
 
-void Network_Common::init()
+void Network::init()
 {
     db<Init, Network>(TRC) << "Network::init()" << endl;
 
-    Initializer<0>::init();
+    if(Traits<ELP>::enabled)
+        ELP::init();
 
 #ifdef __ipv4__
 
-    // If IP was initialized, initialize also the rest of the stack
-    if(Traits<Network>::NETWORKS::Count<IP>::Result) {
-        if(Traits<ICMP>::enabled)
-            new (SYSTEM) ICMP;
-        if(Traits<UDP>::enabled)
-            new (SYSTEM) UDP;
-        if(Traits<TCP>::enabled)
-            new (SYSTEM) TCP;
-    }
+    if(Traits<IP>::enabled)
+        IP::init();
+
+#endif
+
+#ifdef __tstp__
+
+    if(Traits<TSTP>::enabled)
+        TSTP::init();
 
 #endif
 

@@ -16,9 +16,9 @@ public:
     // Predictor Types (defined in Traits)
     typedef unsigned char Predictor_Type;
     enum : unsigned char {
-        NONE = Traits<void>::NONE,
-        LVP = Traits<void>::LVP,
-        DBP = Traits<void>::DBP
+        NONE = Traits<Build>::NONE,
+        LVP = Traits<Build>::LVP,
+        DBP = Traits<Build>::DBP
     };
 
     // Predictor Model Types

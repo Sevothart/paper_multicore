@@ -8,11 +8,11 @@
 
 __BEGIN_UTIL
 
-template<typename T, unsigned int N_ELEMENTS>
+template<typename T, unsigned int N>
 class Array
 {
 private:
-    static const unsigned int SIZE = N_ELEMENTS * sizeof(T);
+    static const unsigned int SIZE = N * sizeof(T);
 
 public:
     typedef T Object_Type;
@@ -23,40 +23,32 @@ public:
     template <typename U>
     Array(const U & o) { copy_and_pad(&o, sizeof(U)); }
 
-    Object_Type & operator[](const size_t i) { return _data[i]; }
-    const Object_Type & operator[](const size_t i) const { return _data[i]; }
+    static constexpr unsigned int length() { return N; };
+
+    Object_Type & operator[](const unsigned int i) { return _data[i]; }
+    const Object_Type & operator[](const unsigned int i) const { return _data[i]; }
     operator const Object_Type *() const { return _data; }
     operator Object_Type *() { return _data; }
-
-    size_t search(const Object_Type & obj) {
-        size_t i = 0;
-        for(; i < N_ELEMENTS; i++)
-            if(_data[i] == obj)
-                break;
-        return i;
-    }
 
     template <typename U>
     bool operator==(const U & o) const { return (SIZE == sizeof(U)) && (!memcmp(&o, _data, SIZE)); }
     template <typename U>
     bool operator!=(const U & o) const { return !(*this == o); }
 
-    friend OStream & operator<<(OStream & out, const Array & array) {
-        out << "[";
-        for(unsigned int i = 0; i < N_ELEMENTS; i++) {
-            out << array[i];
-            if(i < N_ELEMENTS - 1)
-                out << ",";
-        }
-        out << "]";
-        return out;
+    unsigned int search(const Object_Type & obj) {
+        unsigned int i = 0;
+        for(; i < N; i++)
+            if(_data[i] == obj)
+                break;
+        return i;
     }
 
-    friend Debug & operator<<(Debug & out, const Array & array) {
+    template<typename _T, unsigned int _N>
+    friend OStream & operator<<(OStream & out, const Array<_T, _N> & array) {
         out << "[";
-        for(unsigned int i = 0; i < N_ELEMENTS; i++) {
+        for(unsigned int i = 0; i < N; i++) {
             out << array[i];
-            if(i < N_ELEMENTS - 1)
+            if(i < N - 1)
                 out << ",";
         }
         out << "]";
@@ -74,7 +66,13 @@ private:
     }
 
 private:
-    T _data[N_ELEMENTS];
+    T _data[N];
+};
+
+template<typename T>
+class Array<T, 0> {
+public:
+    static constexpr unsigned int length() { return 0; };
 };
 
 __END_UTIL

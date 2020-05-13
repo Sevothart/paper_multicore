@@ -26,9 +26,10 @@ int main()
     cout << "  Thread 2 prints \"b\" every " << period_b << " ms;" << endl;
     cout << "  Thread 3 prints \"c\" every " << period_c << " ms." << endl;
 
-    Periodic_Thread thread_a(RTConf(period_a * 1000, iterations), &func_a);
-    Periodic_Thread thread_b(RTConf(period_b * 1000, iterations), &func_b);
-    Periodic_Thread thread_c(RTConf(period_c * 1000, iterations), &func_c);
+    // p,d,c,act,t
+    Periodic_Thread thread_a(RTConf(period_a * 1000, 0, 0, 0, iterations), &func_a);
+    Periodic_Thread thread_b(RTConf(period_b * 1000, 0, 0, 0, iterations), &func_b);
+    Periodic_Thread thread_c(RTConf(period_c * 1000, 0, 0, 0, iterations), &func_c);
 
     cout << "Threads have been created. I'll wait for them to finish...\n" << endl;
 

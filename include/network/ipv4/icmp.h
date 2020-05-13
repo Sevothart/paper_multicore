@@ -11,7 +11,7 @@ __BEGIN_SYS
 
 class ICMP: private IP::Observer
 {
-    friend class Network_Common;
+    friend class IP;
 
 public:
     static const bool connectionless = true;
@@ -78,13 +78,8 @@ public:
     class Address: public IP::Address
     {
     public:
-        typedef Type Local;
-
-    public:
         Address() {}
         Address(const IP::Address & ip): IP::Address(ip) {}
-
-        Local local() const { return 0; }
     };
 
     typedef Data_Observer<Buffer, Type> Observer; // ICMP does not use the Condition, but to support Communicator/Link, 0 is used
@@ -174,7 +169,7 @@ public:
         IP::detach(this, IP::ICMP);
     }
 
-    static int send(const Address::Local & from, const Address & to, const void * data, unsigned int size);
+    static int send(const Address & from, const Address & to, const void * data, unsigned int size);
     static int receive(Buffer * buf, Address * from, void * data, unsigned int size);
 
     // ICMP does not use the Condition in Observer, but to support Communicator/Link, 0 is used

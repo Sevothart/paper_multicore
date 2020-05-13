@@ -131,7 +131,7 @@ typedef unsigned long PPM; // parts per million
 typedef unsigned long long PPB; // parts per billion
 
 // Infinite times (for alarms and periodic threads)
-enum : unsigned int { INFINITE = -1UL };
+enum : unsigned int { INFINITE = -1U };
 
 
 // System Components IDs

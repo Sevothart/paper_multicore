@@ -79,6 +79,7 @@ void Alarm::period(const Microsecond & p)
         unlock();
 }
 
+
 // Class methods
 void Alarm::delay(const Microsecond & time)
 {
@@ -90,11 +91,15 @@ void Alarm::delay(const Microsecond & time)
     semaphore.p();
 }
 
+
 void Alarm::handler(IC::Interrupt_Id i)
 {
     lock();
 
     _elapsed++;
+
+    //if (!(_elapsed % 1000))
+    //    db<Thread>(WRN) << _elapsed << endl;
 
     if(Traits<Alarm>::visible) {
         Display display;

@@ -8,10 +8,7 @@
 __BEGIN_SYS
 
 class Machine_Common;
-template<> struct Traits<Machine_Common>: public Traits<void>
-{
-    static const bool debugged = Traits<void>::debugged;
-};
+template<> struct Traits<Machine_Common>: public Traits<Build> {};
 
 template<> struct Traits<Machine>: public Traits<Machine_Common>
 {
@@ -123,6 +120,7 @@ template<> struct Traits<USB>: public Traits<Machine_Common>
     // Enabling debug may cause trouble in some Machines
     static const bool debugged = false;
 
+    static const bool wait_to_sync = false;
     static const unsigned int UNITS = 1;
     static const bool blocking = false;
     static const bool enabled = true;
@@ -133,7 +131,7 @@ template<> struct Traits<Watchdog>: public Traits<Machine_Common>
     static const unsigned int PERIOD = 1000; // ms
 };
 
-template<> struct Traits<Serial_Display>: public Traits<void>
+template<> struct Traits<Serial_Display>: public Traits<Machine_Common>
 {
     static const bool enabled = true;
     static const unsigned int ENGINE = USB;
@@ -143,7 +141,7 @@ template<> struct Traits<Serial_Display>: public Traits<void>
     static const unsigned int TAB_SIZE = 8;
 };
 
-template<> struct Traits<Serial_Keyboard>: public Traits<void>
+template<> struct Traits<Serial_Keyboard>: public Traits<Machine_Common>
 {
     static const bool enabled = true;
 };
@@ -156,24 +154,24 @@ template<> struct Traits<Scratchpad>: public Traits<Machine_Common>
 template<> struct Traits<IEEE802_15_4>: public Traits<Machine_Common>
 {
     // NICS that don't have a network in Traits<Network>::NETWORKS will not be enabled
-    typedef LIST<CC2538> DEVICES;
+    typedef LIST<IEEE802_15_4_NIC> DEVICES;
     static const unsigned int UNITS = DEVICES::Length;
 
     static const bool enabled = (Traits<Build>::NODES > 1) && (UNITS > 0);
 };
 
-template<> struct Traits<CC2538>: public Traits<Machine_Common>
+template<> struct Traits<IEEE802_15_4_NIC>: public Traits<Machine_Common>
 {
-    static const unsigned int UNITS = Traits<IEEE802_15_4>::DEVICES::Count<CC2538>::Result;
+    static const unsigned int UNITS = Traits<IEEE802_15_4>::DEVICES::Count<IEEE802_15_4_NIC>::Result;
     static const unsigned int RECEIVE_BUFFERS = 20; // per unit
     static const bool gpio_debug = false;
     static const bool reset_backdoor = false;
     static const unsigned int DEFAULT_CHANNEL = 26;
 
-    static const bool enabled = (Traits<Build>::NODES > 1) && (UNITS > 0);
-
-    static const bool tstp_mac = true;
+    static const bool tstp_mac = false;
     static const bool promiscuous = false;
+
+    static const bool enabled = (Traits<Build>::NODES > 1) && (UNITS > 0);
 };
 
 template<> struct Traits<Modem>: public Traits<Machine_Common>

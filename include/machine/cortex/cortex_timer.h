@@ -20,7 +20,7 @@ class Timer: private System_Timer_Engine
 
 protected:
     static const unsigned int CHANNELS = 2;
-    static const unsigned int FREQUENCY = Traits<Timer>::FREQUENCY; //not ported ?
+    static const unsigned int FREQUENCY = Traits<Timer>::FREQUENCY;
 
     typedef System_Timer_Engine Engine;
     typedef IC_Common::Interrupt_Id Interrupt_Id;

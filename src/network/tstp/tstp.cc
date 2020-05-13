@@ -19,7 +19,7 @@ TSTP::Manager * TSTP::_manager;
 
 TSTP::Time TSTP::_epoch;
 
-TSTP::_NIC * TSTP::_nic;
+NIC<TSTP::NIC_Family> * TSTP::_nic;
 Data_Observed<TSTP::Buffer> TSTP::_parts;
 Data_Observed<TSTP::Buffer, TSTP::Unit> TSTP::_clients;
 

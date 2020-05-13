@@ -4,9 +4,9 @@
 #define __network_h
 
 #include <machine/nic.h>
-#include <network/initializer.h>
+#include <network/network.h>
 
-#ifdef __ethernet__
+#ifdef __NIC_H
 #include <network/elp.h>
 #endif
 

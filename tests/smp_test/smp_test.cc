@@ -1,38 +1,48 @@
 #include <utility/ostream.h>
 #include <synchronizer.h>
 #include <process.h>
+#include <clerk.h>
 #include <time.h>
 #include <architecture/cpu.h>
+#include <machine.h>
 
 using namespace EPOS;
 
-#define SILENT 1
-
 OStream cout;
 
-const unsigned int t_num = 4;
-
-const int iterations = 10; // 5 sec
+const bool SILENT = false;
+const unsigned int THREADS = 4;
+const unsigned int ITERATIONS = 10; // 5 sec
 
 Semaphore print;
 
-Thread * threads[t_num];
+Thread * thread[THREADS];
 
 int test() {
-    int cpu = CPU::id(); // m1
-    #if !SILENT
+    int cpu = CPU::id();
+    if (!SILENT) {
         print.p();
-        cout << "CPU[" << cpu << "] Start!" << endl;
+        cout << "CPU[" << cpu << "] Start! Clock = " << Machine::clock() << endl;
         print.v();
-    #endif
-    for (int i = 0; i < iterations; ++i)
-    {
-        Delay(500000);
-        #if !SILENT
+    }
+    TSC::Time_Stamp t0 = 0;
+    TSC::Time_Stamp t1 = 0;
+
+    for (unsigned int i = 0; i < ITERATIONS; ++i) {
+        if (!cpu) {
             print.p();
-            cout << "CPU[" << cpu << "] Iter["<< i <<"]" << ",&I=" << &i << endl;
+            cout << "Clock = " <<Machine::clock(1200000000 - (i % 7)*100000000) << endl;
             print.v();
-        #endif
+        }
+        t0 = TSC::time_stamp();
+        Delay(500000);
+        //for (int i = 0; i < cpu+100000000; ++i) ASM("nop"); // to evaluate clock change
+        t1 = TSC::time_stamp();
+        if (!SILENT) {
+            print.p();
+            cout << "CPU[" << cpu << "] Iter["<< i <<"]" << ",t=" << t1-t0 << endl;
+            print.v();
+        }
     }
 
     print.p();
@@ -45,39 +55,43 @@ int test() {
 int main()
 {
     cout << "Simple SMP Tester!" << endl;
-    #if !SILENT
-        cout << t_num << " Threads will be created following CPU Affinity Scheduling!" << endl;
-        cout << "Will create them now!" << endl;
-    #endif
+    if (!SILENT) {
+        cout << THREADS << " Threads will be created following CPU Affinity Scheduling!" << endl;
+    }
     
     print = Semaphore(1);
     print.p();
 
-    for (int i = 0; i < t_num; ++i)
-    {
-        threads[i] = new Thread(&test);
+    cout << "clock["<< CPU::id() <<"]" << Machine::clock() << endl;
+    Hertz new_clock = 1200000000;
+    cout << "    clock change to" << new_clock << "Hz" << endl;
+    cout << "    clock now is = " << Machine::clock(new_clock) << endl;
+
+    for (unsigned int i = 0; i < THREADS; ++i) {
+        thread[i] = new Thread(&test);
     }
-    #if !SILENT
-        cout << "All Threads have been created! \n Now they will sleep for 0.5s each and print a message for " << iterations << " Times \n Releasing print lock!" << endl;
-    #endif
+
+    if (!SILENT) {
+        cout << "All Threads have been created! \n Now they will sleep for 0.5s each and print a message for " << ITERATIONS << " Times \n Releasing print lock!" << endl;
+    }
+    Monitor::enable_captures(TSC::time_stamp());
     print.v();
 
-    for (int i = 0; i < t_num; ++i)
-    {
-        threads[i]->join();
+    for (unsigned int i = 0; i < THREADS; ++i) {
+        thread[i]->join();
     }
-    #if !SILENT
+
+    if (!SILENT) {
         cout << "All threads have ended!" << endl;
         cout << "Simple SMP Tester will now delete them!" << endl;
-    #endif
-    for (int i = 0; i < t_num; ++i)
-    {
-        delete threads[i];
     }
-    #if !SILENT
-        cout << "Sleeping for 2 second, then the system will be rebooted!" << endl;
-    #endif
+
+    for (unsigned int i = 0; i < THREADS; ++i) {
+        delete thread[i];
+    }
+
     cout << "Goodbey world!" << endl;
+    Monitor::disable_captures();
 
     return 0;
 }

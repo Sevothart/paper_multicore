@@ -1,18 +1,16 @@
-// EPOS TI CC2538 IEEE 802.15.4 NIC Mediator Declarations
+// EPOS EPOSMoteIII (ARM Cortex-M3) 802.15.4 NIC Mediator Declarations
 
-#ifndef __emote3_cc2538rf_h
-#define __emote3_cc2538rf_h
+#ifndef __emote3_ieee802_15_4_h
+#define __emote3_ieee802_15_4_h
 
 #include <system/config.h>
 
-#ifdef __tstp__
+#ifdef __NIC_H
 
 #include <utility/convert.h>
 #include <machine/ic.h>
 #include <machine/machine.h>
 #include <network/ieee802_15_4.h>
-#include <network/ieee802_15_4_mac.h>
-#include <network/tstp/mac.h>
 #include "emote3_sysctrl.h"
 #include "emote3_memory_map.h"
 
@@ -40,7 +38,7 @@ protected:
     typedef CPU::IO_Irq IO_Irq;
     typedef MMU::DMA_Buffer DMA_Buffer;
 
-    static const bool promiscuous = Traits<CC2538>::promiscuous;
+    static const bool promiscuous = Traits<IEEE802_15_4_NIC>::promiscuous;
 
     static const unsigned int TX_TO_RX_DELAY = 2; // Radio takes extra 2us to go from TX to RX or idle
     static const unsigned int RX_TO_TX_DELAY = 0;
@@ -383,7 +381,7 @@ public:
 
     class Timer: private NIC_Common::Timer
     {
-        friend class CC2538;
+        friend class IEEE802_15_4_NIC;
         friend class CC2538RF;
         friend class IC;
 
@@ -593,6 +591,12 @@ public:
         ffsm(SHORT_ADDR0) = address[0];
         ffsm(SHORT_ADDR1) = address[1];
     }
+    IEEE802_15_4::Address address() {
+        IEEE802_15_4::Address address;
+        address[0] = ffsm(SHORT_ADDR0);
+        address[1] = ffsm(SHORT_ADDR1);
+        return address;
+    }
 
     // FIXME: methods changed to static because of TSTP_MAC
     static void backoff(const Microsecond & time) {
@@ -746,7 +750,7 @@ public:
         if(!valid_frame)
             drop();
 
-        else if(Traits<CC2538>::reset_backdoor && (mac_frame_size == sizeof(Reset_Backdoor_Message) + sizeof(IEEE802_15_4::Header))) {
+        else if(Traits<IEEE802_15_4_NIC>::reset_backdoor && (mac_frame_size == sizeof(Reset_Backdoor_Message) + sizeof(IEEE802_15_4::Header))) {
             if((rxfifo[first + sizeof(IEEE802_15_4::Header) + 1] == 0xbe) && (rxfifo[first + sizeof(IEEE802_15_4::Header) + 10] == 0xef)) {
                 UUID id;
                 for(unsigned int i = 0; i < sizeof(UUID); i++)
@@ -757,6 +761,10 @@ public:
         }
 
         return valid_frame;
+    }
+
+    static void eoi(IC::Interrupt_Id interrupt) {
+        IC::disable(IC::INT_NIC0_TIMER); // Make sure radio and MAC timer don't preempt one another
     }
 
     static void power(const Power_Mode & mode) {
@@ -809,122 +817,7 @@ private:
     static bool _cca_done;
 };
 
-
-// CC2538 IEEE 802.15.4 EPOSMote III NIC Mediator
-class CC2538: public NIC<IEEE802_15_4>, private IF<Traits<CC2538>::tstp_mac, TSTP::MAC<CC2538RF, Traits<System>::DUTY_CYCLE != 1000000>, IEEE802_15_4_MAC<CC2538RF>>::Result
-{
-    friend class Machine_Common;
-
-private:
-    typedef IEEE802_15_4::Buffer Buffer;
-    typedef IEEE802_15_4::Statistics Statistics;
-    typedef IEEE802_15_4::Address Address;
-    typedef IEEE802_15_4::Protocol Protocol;
-    typedef typename IF<Traits<CC2538>::tstp_mac, TSTP::MAC<CC2538RF, Traits<System>::DUTY_CYCLE != 1000000>, IEEE802_15_4_MAC<CC2538RF>>::Result MAC;
-
-    // Transmit and Receive Ring sizes
-    static const unsigned int UNITS = Traits<CC2538>::UNITS;
-    static const unsigned int RX_BUFS = Traits<CC2538>::RECEIVE_BUFFERS;
-
-    // Size of the DMA Buffer that will host the ring buffers
-    static const unsigned int DMA_BUFFER_SIZE = RX_BUFS * sizeof(Buffer);
-
-    // Interrupt dispatching binding
-    struct Device {
-        CC2538 * device;
-        unsigned int interrupt;
-        unsigned int error_interrupt;
-    };
-
-public:
-    typedef CC2538RF::Timer Timer;
-
-protected:
-    CC2538(unsigned int unit);
-
-public:
-    ~CC2538();
-
-    int send(const Address & dst, const Protocol & prot, const void * data, unsigned int size);
-    int receive(Address * src, Protocol * prot, void * data, unsigned int size);
-    bool drop(unsigned int id) { return MAC::drop(id); }
-
-    Buffer * alloc(const Address & dst, const Protocol & prot, unsigned int once, unsigned int always, unsigned int payload);
-    void free(Buffer * buf);
-    int send(Buffer * buf);
-
-    const Address & address() { return _address; }
-    void address(const Address & address) { _address = address; CC2538RF::address(address); }
-
-    unsigned int channel() { return _channel; }
-    void channel(unsigned int channel) {
-        if((channel > 10) && (channel < 27)) {
-            _channel = channel;
-            CC2538RF::channel(_channel);
-        }
-    }
-
-    const Statistics & statistics() { return _statistics; }
-
-    void reset();
-
-    static CC2538 * get(unsigned int unit = 0) { return get_by_unit(unit); }
-
-    static void eoi(IC::Interrupt_Id interrupt) {
-        IC::disable(IC::INT_NIC0_TIMER); // Make sure radio and MAC timer don't preempt one another
-    }
-
-    void power(const Power_Mode & mode) {
-        switch(mode) {
-        case ENROLL:
-            break;
-        case DISMISS:
-            break;
-        case SAME:
-            break;
-        case FULL:
-        case LIGHT:
-            scr()->clock_ieee802_15_4();
-            break;
-        case SLEEP:
-        case OFF:
-            scr()->unclock_ieee802_15_4();
-            break;
-        }
-    }
-
-private:
-    void handle_int();
-
-    static void int_handler(IC::Interrupt_Id interrupt);
-
-    static CC2538 * get_by_unit(unsigned int unit) {
-        assert(unit < UNITS);
-        return _devices[unit].device;
-    }
-
-    static CC2538 * get_by_interrupt(unsigned int interrupt) {
-        CC2538 * tmp = 0;
-        for(unsigned int i = 0; i < UNITS; i++)
-            if((_devices[i].interrupt == interrupt) || (_devices[i].error_interrupt == interrupt))
-                tmp = _devices[i].device;
-        return tmp;
-    };
-
-    static void init(unsigned int unit);
-
-private:
-    unsigned int _unit;
-
-    Address _address;
-    unsigned int _channel;
-    Statistics _statistics;
-
-    Buffer * _rx_bufs[RX_BUFS];
-    unsigned int _rx_cur_consume;
-    unsigned int _rx_cur_produce;
-    static Device _devices[UNITS];
-};
+typedef CC2538RF IEEE802_15_4_Engine;
 
 __END_SYS
 

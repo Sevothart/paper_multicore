@@ -31,13 +31,12 @@ public:
             IC::Interrupt_Id int_id = IC::INT_GPIOA + _port;
             IC::disable(int_id);
             Engine::int_disable();
-
             IC::int_vector(int_id, int_handler);
-
             Engine::int_enable(int_edge);
             Engine::clear_interrupts();
             Engine::int_enable();
             IC::enable(int_id);
+
         }
     }
 

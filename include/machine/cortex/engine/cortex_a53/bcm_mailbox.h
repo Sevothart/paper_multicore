@@ -70,10 +70,6 @@ public:
         CORE3_MAILBOX2_IRQ              = 110,
         CORE3_MAILBOX3_IRQ              = 111
     };
-
-    enum {
-        IC_BASE = 0x3f00b200
-    };
 };
 
 class BCM_IRQ: public BCM_IC_Common
@@ -98,13 +94,11 @@ public:
 
 public:
     void enable() {
-        // Este comando trava o sistema! (?)
         irq(ENABLE_IRQS_1) = ~1;
     }
 
     void enable(int i) {
         irq(ENABLE_IRQS_1 + (i / 32) * 4) |= 1 << (i % 32);
-        // irq (ENABLE_BASIC_IRQS) = 1 << 0; EQUIVALENTE PARA ARM_TIMER_INT
     }
 
     void disable() {
@@ -137,7 +131,7 @@ public:
     }
 
 private:
-    volatile Reg32 & irq(unsigned int o) { return reinterpret_cast<volatile Reg32 *>(IC_BASE)[o / sizeof(Reg32)]; }
+    volatile Reg32 & irq(unsigned int o) { return reinterpret_cast<volatile Reg32 *>(this)[o / sizeof(Reg32)]; }
 };
 
 

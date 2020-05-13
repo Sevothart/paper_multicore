@@ -116,7 +116,7 @@ class Assert
 {
 public:
     static void fail(const char * __assertion, const char * __file, unsigned int __line, const char * __function) {
-        db<void>(ERR) << "Assertion fail: " << __assertion << ", function=" << __function << ", file=" << __file << ", line=" << __line << endl;
+        db<Build>(ERR) << "Assertion fail: " << __assertion << ", function=" << __function << ", file=" << __file << ", line=" << __line << endl;
     }
 };
 

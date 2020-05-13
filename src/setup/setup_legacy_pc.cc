@@ -49,11 +49,6 @@ extern "C" {
     }
 }
 
-__BEGIN_UTIL
-OStream::Endl endl;
-OStream::Begl begl;
-__END_UTIL
-
 __BEGIN_SYS
 
 // SETUP does not handle global constructors, so kout and kerr must be

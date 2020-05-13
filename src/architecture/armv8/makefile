@@ -22,4 +22,4 @@ $(LIBARCH):	$(LIBARCH)($(OBJS))
 $(LIBINIT):	$(LIBINIT)($(INITS))
 
 clean:
-			$(CLEAN) *.o *.s *_test
+		$(CLEAN) *.o *.s *_test

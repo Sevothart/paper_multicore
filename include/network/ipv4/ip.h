@@ -16,7 +16,10 @@ __BEGIN_SYS
 class IP: private NIC<Ethernet>::Observer
 {
     friend class System;
-    friend class Network_Common;
+    friend class Network;
+
+private:
+    static const unsigned int UNITS = COUNTOF(Traits<IP>::NICS);
 
 public:
     static const unsigned int TIMEOUT = Traits<IP>::TIMEOUT * 1000000;
@@ -325,8 +328,7 @@ private:
 
 
 protected:
-    template<unsigned int UNIT = 0>
-    IP(unsigned int nic = UNIT);
+    IP(NIC<Ethernet> * nic, unsigned int config, const Address & address, const Address & netmask, const Address & gateway);
 
 public:
     ~IP();
@@ -387,7 +389,15 @@ private:
 
     static bool notify(const Protocol & prot, Buffer * buf) { return _observed.notify(prot, buf); }
 
-    static void init(unsigned int unit);
+    template<unsigned int UNIT>
+    inline static void init_helper() {
+        NIC<Ethernet> * nic = Traits<Ethernet>::DEVICES::Get<Traits<IP>::NICS[UNIT]>::Result::get(Traits<IP>::NICS[UNIT]);
+        _networks[UNIT] = new (SYSTEM) IP(nic, Traits<IP>::Config<UNIT>::TYPE, Traits<IP>::Config<UNIT>::ADDRESS, Traits<IP>::Config<UNIT>::NETMASK, Traits<IP>::Config<UNIT>::GATEWAY);
+
+        init_helper<UNIT + 1>();
+    };
+
+    static void init();
 
 protected:
     NIC<Ethernet> * _nic;
@@ -398,11 +408,14 @@ protected:
     Address _broadcast;
     Address _gateway;
 
-    static IP * _networks[Traits<Ethernet>::UNITS];
+    static IP * _networks[UNITS];
     static Router _router;
     static Reassembling _reassembling;
     static Observed _observed; // shared by all IP instances, so the default for binding on a port is for all IPs
 };
+
+template<>
+inline void IP::init_helper<IP::UNITS>() {};
 
 __END_SYS
 

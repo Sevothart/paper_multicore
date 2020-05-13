@@ -192,7 +192,7 @@ public:
             else
                 ret = get_byte(data, I2C_CTRL_RUN | I2C_CTRL_ACK);
             if(!ret)
-                return ret;
+                return false;
         }
         return ret;
     }
@@ -263,8 +263,8 @@ public:
 
         _i2c = new(reinterpret_cast<void *>(role == MASTER ? Memory_Map::I2C_MASTER_BASE : Memory_Map::I2C_SLAVE_BASE)) CC2538_I2C;
 
-        PL061 * sda = new(reinterpret_cast<void *>(Memory_Map::GPIOA_BASE + sda_port * 0x1000)) PL061;
-        PL061 * scl = new(reinterpret_cast<void *>(Memory_Map::GPIOA_BASE + scl_port * 0x1000)) PL061;
+        PL061 * sda = new(reinterpret_cast<void *>(Memory_Map::GPIOA_BASE + (sda_port - 'A') * 0x1000)) PL061;
+        PL061 * scl = new(reinterpret_cast<void *>(Memory_Map::GPIOA_BASE + (scl_port - 'A') * 0x1000)) PL061;
 
         scr()->clock_i2c();
 
@@ -273,10 +273,39 @@ public:
         scl->select_pin_function(1 << scl_pin, PL061::FUN_ALTERNATE);
         scl->direction(1 << scl_pin, PL061::INOUT);
 
-        ioc()->enable_i2c(sda_port, sda_pin, scl_port, scl_pin);
+        ioc()->enable_i2c((sda_port - 'A'), sda_pin, (scl_port - 'A'), scl_pin);
 
         _i2c->config(role);
     }
+
+    bool get(char slave_address, char * data, bool stop = true) {
+        return _i2c->get(slave_address, data, stop);
+    }
+
+    bool put(unsigned char slave_address, char data, bool stop = true) {
+        return _i2c->put(slave_address, data, stop);
+    }
+
+    bool read(char slave_address, char * data, unsigned int size, bool stop) {
+        return _i2c->read(slave_address, data, size, stop);
+    }
+
+    bool write(unsigned char slave_address, const char * data, unsigned int size, bool stop) {
+        return _i2c->write(slave_address, data, size, stop);
+    }
+
+    bool ready_to_get() { return _i2c->ready_to_get(); }
+    bool ready_to_put() { return _i2c->ready_to_put(); }
+
+    // The following member functions are not yet implemented. Forwarding them to Base lands in Common and causes a linking
+    // error indicating someone needs this functionality. If you see this, just open an issue in GitLab
+    void flush() { return _i2c->flush(); }
+
+    void int_enable(bool receive = true, bool transmit = true, bool line = true, bool modem = true)  { return _i2c->int_enable(receive, transmit, line, modem); }
+    void int_disable(bool receive = true, bool transmit = true, bool line = true, bool modem = true)  { return _i2c->int_disable(receive, transmit, line, modem); }
+
+    void loopback(bool on = true) { return _i2c->loopback(); }
+    void reset() { return _i2c->reset(); }
 
     static void init() {}
 

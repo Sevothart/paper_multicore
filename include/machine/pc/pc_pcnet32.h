@@ -438,12 +438,12 @@ public:
 
     void reset();
 
-    virtual void attach(Observer * o, const Protocol & p) {
+    void attach(Observer * o, const Protocol & p) {
         NIC<Ethernet>::attach(o, p);
         csr(3, csr(3) & ~ CSR3_RINTM); // enable receive interrupt
     }
 
-    virtual void detach(Observer * o, const Protocol & p) {
+    void detach(Observer * o, const Protocol & p) {
         NIC<Ethernet>::detach(o, p);
         if(!observers())
             csr(3, csr(3) | CSR3_RINTM); // disable receive interrupt

@@ -15,7 +15,7 @@ public:
 
     static const unsigned int UNSUPPORTED_INTERRUTP = ~1;
 
-    enum { // (?)
+    enum {
         INT_SYS_TIMER   = UNSUPPORTED_INTERRUTP,
         INT_USER_TIMER0 = UNSUPPORTED_INTERRUTP,
         INT_USER_TIMER1 = UNSUPPORTED_INTERRUTP,

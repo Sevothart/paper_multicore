@@ -13,7 +13,7 @@
 
 __BEGIN_SYS
 
-class Gyroscope: public Transducer<SmartData::Unit::F32 | SmartData::Unit::Angular_Velocity>, private LSM330
+class Gyroscope: public Transducer<SmartData::Unit::F32 | SmartData::Unit::Angular_Velocity>, private I2C, private LSM330
 {
 public:
     static const unsigned int DEVS = 3;
@@ -22,7 +22,7 @@ public:
     static const bool active = false;
 
 public:
-    Gyroscope(unsigned int dev = 0): LSM330(&Accelerometer::_i2c), _dev(dev) {
+    Gyroscope(unsigned int dev = 0): I2C(Traits<I2C>::LSM330_UNIT, I2C::MASTER), LSM330(this), _dev(dev) {
         // _i2c is being initialized after its being passed to LSM330, but the constructor is empty. Otherwise, use the comma operator
         assert(dev < DEVS);
 

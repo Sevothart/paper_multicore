@@ -13,7 +13,7 @@
 
 __BEGIN_SYS
 
-class Accelerometer: public Transducer<SmartData::Unit::F32 | SmartData::Unit::Acceleration>, private LSM330
+class Accelerometer: public Transducer<SmartData::Unit::F32 | SmartData::Unit::Acceleration>, private I2C, private LSM330
 {
     friend Gyroscope;
 
@@ -24,7 +24,7 @@ public:
     static const bool active = false;
 
 public:
-    Accelerometer(unsigned int dev = 0): LSM330(&_i2c), _dev(dev) {
+    Accelerometer(unsigned int dev = 0): I2C(Traits<I2C>::LSM330_UNIT, I2C::MASTER), LSM330(this), _dev(dev) {
         assert(dev < DEVS);
 
         accelerometer_config();
@@ -51,7 +51,6 @@ public:
 
 private:
     unsigned int _dev;
-    static I2C _i2c;
 };
 
 __END_SYS

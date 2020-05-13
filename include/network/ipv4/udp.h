@@ -11,7 +11,7 @@ __BEGIN_SYS
 
 class UDP: private IP::Observer
 {
-    friend class Network_Common;
+    friend class IP;
     friend class TCP;
 
 private:

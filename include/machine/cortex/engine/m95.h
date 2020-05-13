@@ -66,10 +66,6 @@ public:
 
     void check_timeout();
 
-    int receive(Address * src, Protocol * prot, void * data, unsigned int size) { return 0; }
-    Buffer * alloc(const Address & dst, const Protocol & prot, unsigned int once, unsigned int always, unsigned int payload) { return 0; }
-    void free(Buffer * buf) { return; }
-    int send(Buffer * buf) { return 0; }
     const Address & address() { return _addr; }
     const Address broadcast() { return address(); }
     void address(const Address & address) { }

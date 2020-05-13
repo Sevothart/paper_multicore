@@ -19,7 +19,6 @@ public:
     typedef void Host_Id;
     typedef unsigned int Type_Id;
     typedef unsigned int Unit_Id;
-    typedef Type_Id Local;
 
 public:
     Pointer_Id() {}

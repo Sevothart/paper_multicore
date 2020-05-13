@@ -14,7 +14,6 @@ public:
     // Interrupts
     static const unsigned int INTS = Traits<IC>::INTS;
     enum {
-        INT_ARM_TIMER           = ARM_TIMER_IRQ, //added
         INT_SYS_TIMER           = SYSTEM_TIMER_MATCH1,
         INT_USER_TIMER0         = SYSTEM_TIMER_MATCH3,
         INT_USER_TIMER1         = SYSTEM_TIMER_MATCH3,
@@ -48,7 +47,7 @@ public:
     }
 
     static void disable() {
-        mbox()->disable();
+        //mbox()->disable();
     }
 
     static void disable(unsigned int i) {
@@ -73,9 +72,9 @@ public:
 
     static void ipi(unsigned int cpu, Interrupt_Id id) { mbox()->ipi(cpu, id); }
 
-    static void mailbox_eoi(Interrupt_Id id) { mbox()->eoi(id); }
+    static void mailbox_eoi(Interrupt_Id id) {mbox()->eoi(id); }
 
-    static void init() { mbox()->init(); }; // irq doesn't need initialization!
+    static void init() { mbox()->init(); }; // irq doesn't need initialization
 
 private:
     static BCM_IRQ * irq() { return reinterpret_cast<BCM_IRQ *>(Memory_Map::IC_BASE); }

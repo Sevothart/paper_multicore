@@ -216,6 +216,26 @@ public:
     typedef Data_Observer<Buffer, Type> Observer;
     typedef Data_Observed<Buffer, Type> Observed;
 
+    // Configuration parameters
+    struct Configuration
+    {
+        Configuration(): address(Address::NULL), period(0), channel(0), power(0) {}
+
+        friend Debug & operator<<(Debug & db, const Configuration & c) {
+            db << "{addr=" << c.address
+                << ",p=" << c.period
+                << ",ch=" << c.channel
+                << ",pw=" << c.power
+               << "}";
+            return db;
+        }
+
+        Address address;
+        Microsecond period;
+        unsigned int channel;
+        unsigned int power;
+    };
+
     // Meaningful statistics for IEEE 802.15.4
     struct Statistics: public NIC_Common::Statistics
     {

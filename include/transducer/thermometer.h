@@ -15,7 +15,7 @@
 __BEGIN_SYS
 
 // Silicon Labs SI7020 Temperature sensor
-class Thermometer: public Transducer<SmartData::Unit::I32 | SmartData::Unit::Temperature>, private SI7020
+class Thermometer: public Transducer<SmartData::Unit::I32 | SmartData::Unit::Temperature>, private I2C, private SI7020
 {
     friend Hygrometer;
 
@@ -26,7 +26,7 @@ public:
     static const bool active = false;
 
 public:
-    Thermometer(unsigned int dev = 0): SI7020(&_i2c) { assert(dev < DEVS); }
+    Thermometer(unsigned int dev = 0): I2C(Traits<I2C>::SI7020_UNIT, I2C::MASTER), SI7020(this) { assert(dev < DEVS); }
 
     Value sense() { return Convert::c2k(temperature()); }
 
@@ -34,12 +34,9 @@ public:
     void sense(unsigned int dev, SD * sd) {
         sd->_value = Convert::c2k(temperature());
     }
-
-private:
-    static I2C _i2c;
 };
 
-class Alternate_Thermometer: public Transducer<SmartData::Unit::I32 | SmartData::Unit::Percent>, private CM1101
+class Alternate_Thermometer: public Transducer<SmartData::Unit::I32 | SmartData::Unit::Percent>, private UART, private CM1101
 {
     friend Alternate_Hygrometer;
 
@@ -50,7 +47,7 @@ public:
     static const bool active = false;
 
 public:
-    Alternate_Thermometer(unsigned int dev = 0): CM1101(&_uart) { assert(dev < DEVS); }
+    Alternate_Thermometer(unsigned int dev = 0): UART(Traits<UART>::CM1101_UNIT), CM1101(this) { assert(dev < DEVS); }
 
     Value sense() { return Convert::c2k(temperature()); }
 
@@ -58,9 +55,6 @@ public:
     void sense(unsigned int dev, SD * sd) {
         sd->_value = Convert::c2k(temperature());
     }
-
-private:
-    static UART _uart;
 };
 
 __END_SYS

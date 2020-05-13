@@ -194,7 +194,8 @@ T variance(const T array[], int size, const T & mean)
 
 // Babylonian power of ten helper
 template<typename T>
-T power_of_ten(int num) {
+T power_of_ten(int num)
+{
     T rst = 1.0;
     if(num >= 0)
         for(int i = 0; i < num ; i++)
@@ -207,7 +208,8 @@ T power_of_ten(int num) {
 
 // Babylonian Square Root
 template<typename T>
-T babylonian_sqrt(const T & a) {
+T babylonian_sqrt(const T & a)
+{
     T z = a;
     T rst = 0.0;
     int max = 8;     // to define maximum digit
@@ -248,11 +250,20 @@ T babylonian_sqrt(const T & a) {
 
 // Greatest Common Divisor (Euclid's algorithm)
 template <typename T1, typename T2>
-T1 gcd(T1 a, T2 b) {
+inline T1 gcd(T1 a, T2 b)
+{
     if(b == 0)
         return a;
     else
         return gcd(b, a % b);
+}
+
+// Least Common Multiple
+template <typename T1, typename T2>
+inline T1 lcm(T1 a, T2 b)
+{
+    T1 temp = gcd(a,b);
+    return temp ? a * (b / temp) : 0;
 }
 
 }

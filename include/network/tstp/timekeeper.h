@@ -23,8 +23,8 @@ private:
     static const unsigned int NIC_TIMER_INTERRUPT_DELAY = 0; // us
 #endif
 
-    typedef _NIC::Timer::Time_Stamp Time_Stamp;
-    typedef _NIC::Timer::Offset Offset;
+    typedef NIC<NIC_Family>::Timer::Time_Stamp Time_Stamp;
+    typedef NIC<NIC_Family>::Timer::Offset Offset;
 
 public:
     // Epoch Control Message
@@ -67,7 +67,7 @@ public:
     static Time_Stamp absolute(const Offset & offset); //{ return _location + coordinates; }
     static Offset relative(const Time_Stamp & ts);// { return coordinates - _location; }
 
-    static Time now() { return _NIC::Timer::count2us(time_stamp()); }
+    static Time now() { return NIC<NIC_Family>::Timer::count2us(time_stamp()); }
     static bool synchronized() { return !sync_required(); }
 
 private:
@@ -75,8 +75,8 @@ private:
 
     static void marshal(Buffer * buf);
 
-    static Time_Stamp time_stamp() { return _NIC::Timer::read(); }
-    static Time_Stamp sync_period() { return (long long int)(MAX_DRIFT * 1000000) / (_NIC::Timer::frequency() * _NIC::Timer::accuracy() / 1000000000LL); } // us
+    static Time_Stamp time_stamp() { return NIC<NIC_Family>::Timer::read(); }
+    static Time_Stamp sync_period() { return (long long int)(MAX_DRIFT * 1000000) / (NIC<NIC_Family>::Timer::frequency() * NIC<NIC_Family>::Timer::accuracy() / 1000000000LL); } // us
     static bool sync_required() { return (_next_sync == 0) || (time_stamp() >= (_next_sync - sync_period() / 2)); }
     static void keep_alive();
 

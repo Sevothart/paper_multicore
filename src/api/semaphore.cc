@@ -1,8 +1,8 @@
-// EPOS Semaphore Abstraction Implementation
+// EPOS Semaphore Implementation
 
 #include <semaphore.h>
 #include <process.h>
-#include "tracer.h"
+
 #include "instr_timer.h"
 
 __BEGIN_SYS
@@ -10,8 +10,6 @@ __BEGIN_SYS
 Semaphore::Semaphore(int v): _value(v)
 {
     db<Synchronizer>(TRC) << "Semaphore(value=" << _value << ") => " << this << endl;
-    
-    if(traced) Tracer::semaphoreCreated(this, v);
 }
 
 
@@ -42,8 +40,6 @@ void Semaphore::p()
         end_atomic();
         
     }
-    
-    if(traced)Tracer::semaphoreChanged(this, nv);
 }
 
 
@@ -264,5 +260,4 @@ void Semaphore_MPCP_Global::v()
   	Semaphore_RT::v();
   	end_atomic();
 }
-
 __END_SYS

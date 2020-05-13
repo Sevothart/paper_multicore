@@ -1,6 +1,6 @@
-// EPOS ARMv7 Program Starter
+// EPOS ARMv8 Program Starter
 
-        .file "armv7_crt0.S"
+        .file "armv8_crt0.S"
 
         // Entry point called by SETUP for microcontrollers
         .align  2

@@ -45,7 +45,7 @@ C_LINK_OBJS=
 C_LINK_LIBS=
 
 CPP_COMPILER="$TOOLS_PREFIX""g++"
-CPP_COMP_FLGS="--no-exceptions --no-rtti --no-use-cxa-atexit -std=c++0x"
+CPP_COMP_FLGS="--no-exceptions --no-rtti --no-use-cxa-atexit -std=c++14"
 CPP_COMP_HDRS=
 CPP_LINK_FLGS="$MACH_LD_FLAGS"
 CPP_LINK_OBJS=

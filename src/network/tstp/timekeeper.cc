@@ -44,11 +44,11 @@ void TSTP::Timekeeper::update(Data_Observed<Buffer> * obs, Buffer * buf)
             }
         } else {
             if(peer_closer_to_sink) {
-                Time_Stamp t0 = header->last_hop().t + _NIC::Timer::us2count(NIC_TIMER_INTERRUPT_DELAY);
+                Time_Stamp t0 = header->last_hop().t + NIC<NIC_Family>::Timer::us2count(NIC_TIMER_INTERRUPT_DELAY);
                 Time_Stamp t1 = buf->sfd_time_stamp;
 
                 Offset adj = t0 - t1;
-                _NIC::Timer::adjust(adj);
+                NIC<NIC_Family>::Timer::adjust(adj);
 
                 _next_sync = time_stamp() + sync_period();
                 _life_keeper->reset();

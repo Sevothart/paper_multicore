@@ -1,5 +1,5 @@
 // EPOS Alarm Component Test Program
-#include <utility/ostream.h>
+
 #include <time.h>
 
 using namespace EPOS;

@@ -10,7 +10,7 @@ __BEGIN_SYS
 ICMP::Observed ICMP::_observed;
 
 // Methods
-int ICMP::send(const Address::Local & from, const Address & to, const void * data, unsigned int s)
+int ICMP::send(const Address & from, const Address & to, const void * data, unsigned int s)
 {
     db<ICMP>(TRC) << "ICMP::send(t=" << to << ",d=" << data << ",s=" << s << ")" << endl;
 

@@ -18,8 +18,8 @@ enum {
 // TTB definitions
 enum {
     TTBCR_DOMAIN                    = 0xffffffff, // All access to client
-    TTB_MEMORY_DESCRIPTOR           = 0x90c0e,
-    TTB_DEVICE_DESCRIPTOR           = 0x90c0a,
+    TTB_MEMORY_DESCRIPTOR           = 0x91c0e,
+    TTB_DEVICE_DESCRIPTOR           = 0x91c06,
     TTB_PERIPHERAL_DESCRIPTOR       = 0x90c16
     // According to ARMv7 Arch. Ref. Manual: (description beggining at pages 1326 to 1329)
     // REG[19] NS, 0b0 for secure address space -> no effect on  Physical Address Space. -> Page 1330
@@ -27,7 +27,7 @@ enum {
     // REG[17] = 0b0 the TTB is global -> page 1378
     // REG[16] = 0b1 means shareable memory -> page 1368
     // REG[15] = 0b0 means read/write memory (if 1, read-only) -> ->  page 1358
-    // REG[14:12] = TEX - 0b000 means possibly shareable page -> 1367
+    // REG[14:12] = TEX - 0b001 + C + B == outer inner write-back, write-allocate
     // REG[11:10] = 0b11 means read/write with full access ->  page 1358
     // REG[9] = 0b0, Implementation Defined. -> page 1329
     // Reg[8:5] = 0b0000, Domain - not supported (DEPRECATED) its written on mcr p15, 0, <rt>, c3, c0, 0 -

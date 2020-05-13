@@ -18,6 +18,9 @@ void Thread::init()
 
     CPU::smp_barrier();
 
+    if(monitored)
+        Monitor::init();
+
     static volatile bool task_ready = false;
 
     if(CPU::id() == 0) {
@@ -68,10 +71,6 @@ void Thread::init()
         CPU::int_disable();
         IC::enable(IC::INT_RESCHEDULER);
     }
-
-    // Enable secondary cores monitoring (primary core is enabled at pre_main())
-    if(monitored && CPU::id() != 0)
-        Monitor::init();
 
     // Transition from CPU-based locking to thread-based locking
     CPU::smp_barrier();

@@ -16,7 +16,7 @@ Author: Sravanthi Kota Venkata
 ***/
 
 #include "mser.h"
-#include <string.h>
+#include <utility/string.h>
 #include <process.h>
 #include <architecture/tsc.h>
 

@@ -209,10 +209,11 @@ void TSTP::Security::update(Data_Observed<Buffer> * obs, Buffer * buf)
                     default: break;
                 }
             }
+            break;
             case RESPONSE: {
                 db<TSTP>(INF) << "TSTP::Security::update(): Response message received from " << buf->frame()->data<Header>()->origin() << endl;
 //                Response * resp = buf->frame()->data<Response>();
-                Time reception_time = _NIC::Timer::count2us(buf->sfd_time_stamp);
+                Time reception_time = NIC<NIC_Family>::Timer::count2us(buf->sfd_time_stamp); // TODO: create a method in Timekeeper to handle these conversions
                 for(Peers::Element * el = _trusted_peers.head(); el; el = el->next()) {
                     if(el->object()->valid_deploy(buf->frame()->data<Header>()->origin(), TSTP::now())) {
                         unsigned char * data = buf->frame()->data<unsigned char>();
