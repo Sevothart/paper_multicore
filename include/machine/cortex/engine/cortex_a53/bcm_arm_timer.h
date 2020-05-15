@@ -5,7 +5,7 @@
 
 #include <architecture/cpu.h>
 
-#include <machine/cortex/raspberry_pi3/raspberry_pi3_gpio.h>
+// #include <machine/cortex/raspberry_pi3/raspberry_pi3_gpio.h>
 #include <machine/cortex/cortex_ic.h>
 #include <system/memory_map.h>
 
@@ -17,14 +17,13 @@
 __BEGIN_SYS
 
 /*
-TODO: Add ARM_Timer to Alarm and Chronometer of the system, instead of TSC.
+Added by LucasM: Methods init, enable, disable, arm_eoi, int_enable, handler and arm_timer 
 
+TODO: Add ARM_Timer to Alarm and Chronometer of the system, instead of TSC.
 system/config.h:
     Should add a macro like this #define __ARM_TIMER_H        __HEADER_ARCH(arm_timer);
 architecture/armv7/cpu_init.cc:
     Should have a new #ifdef __ARM_TIMER_H that would call init method if Traits<ARM_TIMER>::enabled
-
-TODO: Implement a time_stamp method
 */
 
 class ARM_Timer : public Timer_Common
@@ -130,14 +129,14 @@ private:
     Ex:    1000 in 250MHz -> called every 4us
     Ex:       1 in 250MHz -> called every 4ns
     */
-    static void init() { 
-        arm_timer()->int_enable();
+    static void init() {
         arm_timer()->enable();
+        arm_timer()->int_enable();
     }
 
 private:
     /* This GPIO pin bellow can be utilized to ensure ARM_Timer frequency on an oscilloscope */
-    GPIO_Engine * _osc_pin;
+    // GPIO_Engine * _osc_pin;
 };
 
 __END_SYS

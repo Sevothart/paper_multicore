@@ -14,6 +14,7 @@ public:
     // Interrupts
     static const unsigned int INTS = Traits<IC>::INTS;
     enum {
+        INT_ARM_TIMER           = ARM_TIMER_IRQ, /* Added by LucasM */
         INT_SYS_TIMER           = SYSTEM_TIMER_MATCH1,
         INT_USER_TIMER0         = SYSTEM_TIMER_MATCH3,
         INT_USER_TIMER1         = SYSTEM_TIMER_MATCH3,

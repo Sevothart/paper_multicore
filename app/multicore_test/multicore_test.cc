@@ -1,7 +1,6 @@
 #include <time.h>
 #include <process.h>
 #include <synchronizer.h>
-#include <semaphore.h>
 
 using namespace EPOS;
 OStream cout;
@@ -13,27 +12,20 @@ Thread * threads[5];
 
 int main(){
     start.lock();
-
-    typedef Scheduling_Criteria::CPU_Affinity Criterion;
-    typedef Scheduling_Criteria::Priority Priority;
-
-    cout << "Starting thread config structs." << endl;
-    Thread::Configuration * t1_config = new Thread::Configuration( Thread::READY, Criterion(Thread::LOW, Priority::ANY) );
-    Thread::Configuration * t2_config = new Thread::Configuration( Thread::READY, Criterion(Thread::LOW, Priority::ANY) );
-    Thread::Configuration * t3_config = new Thread::Configuration( Thread::READY, Criterion(Thread::LOW, 3) );
+    Thread::Configuration *config1 = new Thread::Configuration(Thread::State::READY, Scheduling_Criteria::PRM(50, 50, 1, 3));
+    Thread::Configuration *config2 = new Thread::Configuration(Thread::State::READY, Scheduling_Criteria::PRM(50, 50, 1, 2));
 
     cout << "Creating threads." << endl;
-    threads[0] = new Thread( *t1_config, &rotina, 0 );
-    threads[1] = new Thread( *t1_config, &rotina, 1 );
-    threads[2] = new Thread( *t2_config, &rotina, 2 );
-    threads[3] = new Thread( *t2_config, &rotina, 3 );
-    threads[4] = new Thread( *t3_config, &rotina, 4 );
+    for( int i=0; i<3; i++ )
+        threads[i] = new Thread(*config1, &rotina, i);
+    for( int i=3; i<5; i++ )
+        threads[i] = new Thread(*config2, &rotina, i);
+
+    start.unlock();
 
     cout << "Threads will join now." << endl;
     for( int i=0; i<5; i++ )
         threads[i]->join();
-
-    start.unlock();
     
     cout << "Deleting threads." << endl;    
     for(int i = 0; i < 5; i++)
@@ -48,5 +40,6 @@ int rotina(int n) {
         cout << "Thread " << n << " running on core " << CPU::id() << endl;
         Alarm::delay(50000);
     }
+    cout << "TERMINEI! " << n << endl;
     return 0;
 }

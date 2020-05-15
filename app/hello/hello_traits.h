@@ -13,7 +13,7 @@ template<> struct Traits<Build>: public Traits_Tokens
     static const unsigned int ARCHITECTURE = ARMv8;
     static const unsigned int MACHINE = Cortex;
     static const unsigned int MODEL = Raspberry_Pi3;
-    static const unsigned int CPUS = 4;
+    static const unsigned int CPUS = 1;
     static const unsigned int NODES = 1; // (> 1 => NETWORKING)
     static const unsigned int EXPECTED_SIMULATION_TIME = 30; // s (0 => not simulated)
 
@@ -128,7 +128,7 @@ template<> struct Traits<Thread>: public Traits<Build>
     static const bool simulate_capacity = false;
     static const bool trace_idle = hysterically_debugged;
 
-    typedef Scheduling_Criteria::PEDF Criterion;
+    typedef Scheduling_Criteria::RM Criterion;
     static const unsigned int QUANTUM = 10000; // us
 };
 
@@ -230,6 +230,12 @@ template<> struct Traits<Monitor>: public Traits<Build>
 
     static constexpr unsigned int TRANSDUCER_EVENTS[]             = {};
     static constexpr unsigned int TRANSDUCER_EVENTS_FREQUENCIES[] = {}; // in Hz
+
+    // ANN
+    static const unsigned int MAX_TRAINS = 0;//8;
+    static constexpr float TRAIN_MIN_ERROR = 0;//0.02;
+    static constexpr int VARIANCE_RANGES[] = {0,0};//{100, 500};
+    static constexpr float VARIANCE_THRESHOLDS[] = {0,0,0};//{0.05, 0.1, 0.2};
 };
 
 __END_SYS

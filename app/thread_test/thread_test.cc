@@ -4,7 +4,7 @@
 #include <process.h>
 #include <utility/ostream.h>
 #include <synchronizer.h>
-#include <semaphore.h>
+// #include <semaphore.h>
 
 using namespace EPOS;
 
@@ -28,9 +28,10 @@ int main()
     cout << "I'm the first thread of the first task created in the system." << endl;
     cout << "I'll now create two threads and then wait for them to finish ..." << endl;
 
-    Thread::Configuration * config1 = new Thread::Configuration(Thread::State::READY, Thread::Criterion(Thread::NORMAL, 0));
-    Thread::Configuration * config2 = new Thread::Configuration(Thread::State::READY, Thread::Criterion(Thread::NORMAL, 1));
-    a = new Thread(*config1, &func_a);
+    Thread::Configuration *config1 = new Thread::Configuration(Thread::State::READY, Scheduling_Criteria::PRM(50, 50, 1, 1));
+    Thread::Configuration *config2 = new Thread::Configuration(Thread::State::READY, Scheduling_Criteria::PRM(50, 50, 1, 2));
+
+    a = new Thread(*config1 ,&func_a);
     b = new Thread(*config2, &func_b);
 
     int status_a = a->join();

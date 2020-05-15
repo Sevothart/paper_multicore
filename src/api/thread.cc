@@ -29,9 +29,9 @@ TSC::Time_Stamp Thread::_Statistics::idle_time[Traits<Build>::CPUS];
 TSC::Time_Stamp Thread::_Statistics::last_idle[Traits<Build>::CPUS];
 
 // ANN
-bool Thread::_Statistics::decrease_frequency[Traits<Build>::CPUS] = {false, false, false, false};
-bool Thread::_Statistics::to_learn[Traits<Build>::CPUS] = {false, false, false, false};
-bool Thread::_Statistics::prediction_ready[Traits<Build>::CPUS] = {false, false, false, false};
+bool Thread::_Statistics::decrease_frequency[Traits<Build>::CPUS] = {false};//{false, false, false, false};
+bool Thread::_Statistics::to_learn[Traits<Build>::CPUS] = {false};//{false, false, false, false};
+bool Thread::_Statistics::prediction_ready[Traits<Build>::CPUS] = {false};//{false, false, false, false};
 Thread* Thread::_Statistics::threads_cpu[Traits<Build>::CPUS][5];
 unsigned int Thread::_Statistics::t_count_cpu[Traits<Build>::CPUS];
 //unsigned int Thread::_Statistics::missed_deadlines[Traits<Build>::CPUS];
@@ -44,7 +44,7 @@ unsigned int Thread::_Statistics::migration_hyperperiod[3];
 
 unsigned long long Thread::_Statistics::cpu_pmu_accumulated[Traits<Build>::CPUS][COUNTOF(Traits<Monitor>::PMU_EVENTS)];
 unsigned long long Thread::_Statistics::cpu_pmu_last[Traits<Build>::CPUS][COUNTOF(Traits<Monitor>::PMU_EVENTS)];
-bool Thread::_Statistics::cooldown[Traits<Build>::CPUS] = {true, true, true, true};
+bool Thread::_Statistics::cooldown[Traits<Build>::CPUS] = {false};//{true, true, true, true};
 
 
 // Methods
