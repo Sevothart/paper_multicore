@@ -5,7 +5,7 @@
 
 #include <architecture/cpu.h>
 
-// #include <machine/cortex/raspberry_pi3/raspberry_pi3_gpio.h>
+#include <machine/cortex/raspberry_pi3/raspberry_pi3_gpio.h>
 #include <machine/cortex/cortex_ic.h>
 #include <system/memory_map.h>
 
@@ -136,7 +136,7 @@ private:
 
 private:
     /* This GPIO pin bellow can be utilized to ensure ARM_Timer frequency on an oscilloscope */
-    // GPIO_Engine * _osc_pin;
+    GPIO_Engine * _osc_pin;
 };
 
 __END_SYS
