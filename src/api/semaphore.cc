@@ -24,18 +24,18 @@ void Semaphore::p()
     db<Synchronizer>(TRC) << "Semaphore::p(this=" << this << ",value=" << _value << ")" << endl;
     
     ITimer t;
-    int nv;
+    // int nv;
 
     begin_atomic();
     if(fdec(_value) < 1)
     {
-        if(traced) nv =  _value;       
+        // if(traced) nv =  _value;       
         t.stop("sem_p", this);
         sleep(); // implicit end_atomic()
     }
     else
     {
-        if(traced) nv = _value;
+        // if(traced) nv = _value;
         t.stop("sem_p", this);    
         end_atomic();
         
