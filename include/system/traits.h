@@ -55,6 +55,7 @@ class Utility;
 // Architecture Hardware Mediators
 class CPU;
 class TSC;
+class ARM_Timer; /* Added by LucasM */
 class MMU;
 class FPU;
 class PMU;

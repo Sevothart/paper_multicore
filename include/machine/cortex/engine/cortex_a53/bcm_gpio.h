@@ -2,8 +2,10 @@
 #define __bcm_gpio_h
 
 #include <architecture/cpu.h>
+
+#define __timer_common_only__
 #include <machine/gpio.h>
-#include <machine/cortex/raspberry_pi3/raspberry_pi3_memory_map.h>
+#undef __timer_common_only__
 
 __BEGIN_SYS
 
@@ -127,7 +129,7 @@ public:
     static void init(){}
 
 private:
-    volatile Reg32 & gpio(unsigned int o) { return reinterpret_cast<volatile Reg32 *>(Memory_Map::GPIO_BASE)[o / sizeof(Reg32)]; }
+    volatile Reg32 & gpio(unsigned int o) { return reinterpret_cast<volatile Reg32 *>(this)[o / sizeof(Reg32)]; }
 
     void set_bits(Reg32 value, Reg32 mask, const int & port){
         unsigned int aux;

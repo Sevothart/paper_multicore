@@ -9,6 +9,7 @@
 #include <time.h>
 #include <process.h>
 #include <synchronizer.h>
+#include <semaphore.h>
 
 __BEGIN_SYS
 
