@@ -24,32 +24,27 @@ void Semaphore::p()
     db<Synchronizer>(TRC) << "Semaphore::p(this=" << this << ",value=" << _value << ")" << endl;
     
     ITimer t;
-    // int nv;
-
     begin_atomic();
+
     if(fdec(_value) < 1)
-    {
-        // if(traced) nv =  _value;       
+    {    
         t.stop("sem_p", this);
         sleep(); // implicit end_atomic()
     }
     else
     {
-        // if(traced) nv = _value;
         t.stop("sem_p", this);    
         end_atomic();
-        
     }
 }
-
 
 void Semaphore::v()
 {
     db<Synchronizer>(TRC) << "Semaphore::v(this=" << this << ",value=" << _value << ")" << endl;
 
     ITimer t;
-    
     begin_atomic();
+
     if(finc(_value) < 0)
     {
         t.stop("sem_v", this);
@@ -80,7 +75,6 @@ void Semaphore_IPCP::p()
   	  // I will wait in the queue
   	  // Nothing to be done for me
   	}
-	
   	t.stop("ipcp_p", this);
   	Semaphore_RT::p();
   	end_atomic();
@@ -94,7 +88,6 @@ void Semaphore_IPCP::v()
   	if(owner() == currentThread()) //this should be true, otherwise some kind of "double free" happened
   	{
 		owner()->priority(priority());
-	
   	  	Thread_t * next = nextThread();
 
   	  	if(next)
@@ -111,7 +104,6 @@ void Semaphore_IPCP::v()
   	  	  	owner(0); // nobody owns this semaphore anymore
   	  	}
   	}
-	
   	t.stop("ipcp_v", this);
   	Semaphore_RT::v();
   	end_atomic();
@@ -137,7 +129,6 @@ void Semaphore_PCP::p()
   	  	t.stop("pcp_p", this);
   	  	if(owner()->priority() < ceiling()) owner()->priority(ceiling());
   	}
-	
   	Semaphore_RT::p();
   	end_atomic();
 }
@@ -168,10 +159,67 @@ void Semaphore_PCP::v()
   	  	}
   	  	t.stop("pcp_v", this);
   	}
-	
   	Semaphore_RT::v();
   	end_atomic();
 }
+
+// MPCP IMPLEMENTATION
+template<bool T>
+void Semaphore_MPCP<T>::p()
+{
+	ITimer t;
+	begin_atomic();
+	if( !owner() )
+	{
+		owner( currentThread() );
+		priority( owner()->priority() );
+		if(T)
+			owner()->priority( toGlobalCeiling() );
+		else
+			owner()->priority( ceiling() );
+	}
+	else { /* Couldn't get access, wait on synchronizer queue with normal_priority */ }
+
+	t.stop("mpcp_p", this);
+  	Semaphore_RT::p();
+	kout << "Priority_t was " << priority() << ", now is " << owner()->priority() << endl;
+  	end_atomic();
+}
+
+template<bool T>
+void Semaphore_MPCP<T>::v()
+{
+	ITimer t;
+  	begin_atomic();
+	
+  	if(owner() == currentThread())
+  	{
+		owner()->priority( priority() );
+  	  	Thread * next = nextThread();
+
+  	  	if(next)
+  	  	{
+  	  	  	owner(next);
+  	  	  	priority( next->priority() );
+			if(T)
+				next->priority( toGlobalCeiling() );
+			else
+				next->priority( ceiling() );
+  	  	}
+  	  	else
+  	  	  	owner(0);
+  	}
+	
+  	t.stop("mpcp_v", this);
+  	Semaphore_RT::v();
+	kout << "Priority_t was " << priority() << ", now is " << owner()->priority() << endl;
+  	end_atomic();
+}
+
+template void Semaphore_MPCP<true>::p();
+template void Semaphore_MPCP<false>::p();
+template void Semaphore_MPCP<true>::v();
+template void Semaphore_MPCP<false>::v();
 
 // SRP IMPLEMENTATION
 void Semaphore_SRP::p()
@@ -219,45 +267,4 @@ bool Scheduling_Criteria::RT_Common::Elector_SRP::eligible(const Scheduling_Crit
     return el;
 }
 
-void Semaphore_MPCP_Global::p()
-{
-	ITimer t;
-	begin_atomic();
-	if( !owner() )
-	{
-		owner( currentThread() );
-		priority( owner()->priority() );
-		owner()->priority( toGlobalCeiling() );
-	}
-	else { /* Couldn't get access, wait on synchronizer queue with normal_priority */ }
-
-	t.stop("mpcp_global_p", this);
-  	Semaphore_RT::p();
-  	end_atomic();
-}
-
-void Semaphore_MPCP_Global::v()
-{
-	ITimer t;
-  	begin_atomic();
-	
-  	if(owner() == currentThread())
-  	{
-		owner()->priority( priority() );
-  	  	Thread_t * next = nextThread();
-
-  	  	if(next)
-  	  	{
-  	  	  	owner(next);
-  	  	  	priority( next->priority() );
-  	  	  	next->priority( toGlobalCeiling() );
-  	  	}
-  	  	else
-  	  	  	owner(0);
-  	}
-	
-  	t.stop("mpcp_global_v", this);
-  	Semaphore_RT::v();
-  	end_atomic();
-}
 __END_SYS

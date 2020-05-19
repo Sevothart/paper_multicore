@@ -25,7 +25,6 @@ protected:
     volatile int _value;
 };
 
-
 // An event handler that triggers a semaphore (see handler.h)
 class Semaphore_Handler: public Handler
 {
@@ -105,6 +104,37 @@ public:
     void p();
     void v();
 
+};
+
+/*
+MPCP Documentation: Rajkumar rules
+1. Thread normal priority is used out of critical sections.
+2. Local critical sections uses IPCP
+3. Thread accessing Global critical sections has its priority assigned as: _highest_system_priority + 1 + _priority
+4. Jobs on other Global critical section can only preempt if its priority is higher
+5. When a job request Global critical section, can only access if there is no owner currently on the section
+6. IF Global critical section is empty: Thread is inserted on synchronizer prioritized queue, using its normal_priority
+7. On v() operations, if there's any thread on queue head, signal it: p()
+
+HOW TO USE ON APP:
+Semaphore_MPCP<true> _semG(); Used for global resources
+Semaphore_MPCP<false> _semL(ceiling); Used for local resources
+*/
+
+template<bool T>
+class Semaphore_MPCP: public Semaphore_IPCP
+{
+public:
+    Semaphore_MPCP(Priority_t ceiling = 0, int value = 1): Semaphore_IPCP(ceiling, value) {}
+
+    Priority_t toGlobalCeiling() { return _highestPriority + owner()->priority(); }
+
+    void p();
+    void v();
+
+private:
+    /* Highest priority in the whole system + 1, including every core */
+    static const Priority_t _highestPriority = Traits<Semaphore_MPCP<true>>::highest_priority;
 };
 
 class Semaphore_SRP: protected Semaphore_RT {
@@ -215,35 +245,6 @@ private:
     static int getDeadline(const Scheduling_Criteria::RT_Common & criterion) 
     { return criterion._period; }
     
-};
-
-/*
-MPCP Documentation: Rajkumar rules
-1. Thread normal priority is used out of critical sections.
-2. Local critical sections uses IPCP
-3. Thread accessing Global critical sections has its priority assigned as: _highest_system_priority + 1 + _priority
-4. Jobs on other Global critical section can only preempt if its priority is higher
-5. When a job request Global critical section, can only access if there is no owner currently on the section
-6. IF Global critical section is empty: Thread is inserted on synchronizer prioritized queue, using its normal_priority
-7. On v() operations, if there's any thread on queue head, signal it: p()
-*/
-
-/* Used for resources not shared between cores*/
-typedef Semaphore_IPCP Semaphore_MPCP_Local;
-
-/* Used for shared resources between cores */
-class Semaphore_MPCP_Global: public Semaphore_RT
-{
-public:
-    Semaphore_MPCP_Global(Priority_t h_pri, int value = 1 ): Semaphore_RT( value ), _h_priority(h_pri + 1) {}
-
-    Priority_t toGlobalCeiling() { return _h_priority + owner()->priority(); }
-    void p();
-    void v();
-
-private:
-    /* Highest priority in the whole system + 1, including every core */
-    Priority_t _h_priority;
 };
 
 // Conditional Observer x Conditionally Observed with Data decoupled by a Semaphore

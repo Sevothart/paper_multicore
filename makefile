@@ -4,7 +4,7 @@ include makedefs
 
 SUBDIRS	:= etc tools src app img
 VOLUME = RASPEPOS
-TEST_APP = armtimer_test
+TEST_APP = mpcp_test
 
 all: FORCE
 ifndef APPLICATION

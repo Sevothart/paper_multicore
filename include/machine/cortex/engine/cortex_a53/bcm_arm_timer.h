@@ -131,7 +131,7 @@ private:
     */
     static void init() {
         arm_timer()->enable();
-        arm_timer()->int_enable();
+        // arm_timer()->int_enable();
     }
 
 private:

@@ -125,6 +125,10 @@ class Synchronizer;
 class Mutex;
 class Semaphore;
 class Condition;
+class Semaphore_SRP;
+class Semaphore_PCP;
+class Semaphore_IPCP;
+template<bool T> class Semaphore_MPCP;
 
 class Time;
 class Clock;
