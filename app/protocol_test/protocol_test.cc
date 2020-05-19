@@ -61,17 +61,20 @@ void connect_wait() {
 int main() {
     cout << "EPOS Semaphore Protocols Benchmark." << endl;
     cout << "Executing " << iterations << " iterations of "<< sem_val <<" OPs each." << endl;     
-    //connect_wait();
+    connect_wait();
 
     /*
     Semaphore s(sem_val);
     testSemaphore<Semaphore>(s, "Semaphore");
-    */
+
     Semaphore_PCP s_pcp(0, sem_val);
     testSemaphore<Semaphore_PCP>(s_pcp, "Semaphore_PCP");
-    /*
+    
     Semaphore_IPCP s_ipcp(0, sem_val);
     testSemaphore(s_ipcp, "Semaphore_IPCP");
     */
+    Semaphore_MPCP<false> s_mpcp(0, sem_val);
+    testSemaphore(s_mpcp, "Semaphore_MPCP_Local");
+    
     return 0;
 }

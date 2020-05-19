@@ -1,11 +1,14 @@
 #include <time.h>
 #include <process.h>
+#include <semaphore.h>
 #include <synchronizer.h>
 
 using namespace EPOS;
 OStream cout;
 
 Mutex start;
+
+Semaphore_MPCP<false> s_mpcp(0, 10);
 
 int rotina(int n);
 Thread * threads[5];
@@ -36,10 +39,13 @@ int main(){
 }
 
 int rotina(int n) {
+    s_mpcp.p();
+
     for(int i = 100; i > 0; i--){
         cout << "Thread " << n << " running on core " << CPU::id() << endl;
         Alarm::delay(50000);
     }
     cout << "TERMINEI! " << n << endl;
+    s_mpcp.v();
     return 0;
 }

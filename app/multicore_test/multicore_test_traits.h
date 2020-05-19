@@ -142,6 +142,11 @@ template<> struct Traits<Synchronizer>: public Traits<Build>
     static const bool enabled = Traits<System>::multithread;
 };
 
+template<> struct Traits<Semaphore_MPCP<true>>: public Traits<Build>
+{
+    static const unsigned int highest_priority = 50;
+};
+
 template<> struct Traits<Alarm>: public Traits<Build>
 {
     static const bool visible = hysterically_debugged;
