@@ -26,7 +26,7 @@ template<> struct Traits<TSC>: public Traits<Build>
     static const bool enabled = true;
 };
 
-/* Added by LucasM: Traits<ARM_Timer> */
+/* ADDED: Traits<ARM_Timer> */
 template<> struct Traits<ARM_Timer>: public Traits<Build>
 {
     static const bool enabled = true;

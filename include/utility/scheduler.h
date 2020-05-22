@@ -277,10 +277,6 @@ namespace Scheduling_Criteria
         using Variable_Queue::queue;
 
         static unsigned int current_queue() { return CPU::id(); }
-
-        static bool charge();
-        static bool collect();
-        static bool award(bool hyperperiod);
     };
 
     // Clustered Earliest Deadline First (multicore)

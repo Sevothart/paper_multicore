@@ -17,7 +17,7 @@
 __BEGIN_SYS
 
 /*
-Added by LucasM: Methods init, enable, disable, arm_eoi, int_enable, handler and arm_timer 
+ADDED: Methods init, enable, disable, arm_eoi, int_enable, handler and arm_timer 
 
 TODO: Add ARM_Timer to Alarm and Chronometer of the system, instead of TSC.
 system/config.h:

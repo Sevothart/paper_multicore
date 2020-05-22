@@ -3,6 +3,7 @@
 #include <machine/display.h>
 #include <time.h>
 #include <synchronizer.h>
+#include <semaphore.h>
 #include <process.h>
 
 using namespace EPOS;

@@ -3,7 +3,7 @@
 #include <architecture.h>
 #include <machine.h>
 
-#include <machine/cortex/engine/cortex_a53/bcm_arm_timer.h> /* Added by LucasM. */
+#include <machine/cortex/engine/cortex_a53/bcm_arm_timer.h> /* ADDED. */
 
 extern "C" { void __epos_library_app_entry(void); }
 
@@ -27,7 +27,7 @@ void CPU::init()
     if(Traits<TSC>::enabled)
         TSC::init();
     
-    /* Added by LucasM. */
+    /* ADDED. */
     if(Traits<ARM_Timer>::enabled)
         ARM_Timer::init();
 }

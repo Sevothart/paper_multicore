@@ -184,7 +184,6 @@ public:
     ~Thread();
 
     const volatile State & state() const { return _state; }
-    const volatile Statistics & statistics() const { return _statistics; }
 
     const volatile Criterion & priority() const { return _link.rank(); }
     void priority(const Criterion & p);
@@ -197,7 +196,6 @@ public:
     void resume();
 
     static Thread * volatile self() { return running(); }
-    static void reset_statistics();
     static void yield();
     static void exit(int status = 0);
 
@@ -253,9 +251,6 @@ protected:
 
 private:
     static void init();
-
-public:
-    Statistics _statistics;
 
 protected:
     Task * _task;

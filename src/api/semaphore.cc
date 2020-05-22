@@ -28,12 +28,12 @@ void Semaphore::p()
 
     if(fdec(_value) < 1)
     {    
-        t.stop("sem_p", this);
+        t.stop("sem_p_sleep", this);
         sleep(); // implicit end_atomic()
     }
     else
     {
-        t.stop("sem_p", this);    
+        t.stop("sem_p_access", this);    
         end_atomic();
     }
 }
@@ -47,12 +47,12 @@ void Semaphore::v()
 
     if(finc(_value) < 0)
     {
-        t.stop("sem_v", this);
+        t.stop("sem_v_woke", this);
         wakeup();  // implicit end_atomic()
     }
     else
     {
-        t.stop("sem_v", this);
+        t.stop("sem_v_exit", this);
         end_atomic();
     }
 }
