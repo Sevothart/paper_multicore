@@ -6,7 +6,7 @@ __BEGIN_SYS
 class ITimer
 {
 public:
-    ITimer(){
+    ITimer(): start_ticks(0), timer(nullptr) {
         start_ticks = timer->count();
     }
     

@@ -56,7 +56,7 @@ class Condition: protected Synchronizer_Common
 public:
     Condition();
     ~Condition();
-    
+
     void wait();
     void signal();
     void broadcast();

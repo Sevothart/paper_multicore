@@ -94,10 +94,8 @@ template<> struct Traits<UART>: public Traits<Machine_Common>
 
 template<> struct Traits<GPIO>: public Traits<Machine_Common>
 {
-    static const bool enabled = true;
-    static const unsigned int UNITS = 1; 
-
-    static const unsigned int PORTS = 6;
+    static const unsigned int UNITS = 0;
+    static const unsigned int PORTS = 0;
     static const bool supports_power_up = false;
 };
 

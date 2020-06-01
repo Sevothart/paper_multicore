@@ -18,6 +18,9 @@ void Thread::init()
 
     CPU::smp_barrier();
 
+    if(monitored)
+        Monitor::init();
+
     static volatile bool task_ready = false;
 
     if(CPU::id() == 0) {

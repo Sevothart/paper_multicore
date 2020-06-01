@@ -6,9 +6,7 @@
 #include <architecture/cpu.h>
 #include <machine/gpio.h>
 #include <machine/ic.h>
-/* Added LucasM: This is not calling raspberry gpio has it should */
 #include __HEADER_MMOD(gpio)
-#include <machine/cortex/raspberry_pi3/raspberry_pi3_gpio.h>
 #include <utility/observer.h>
 
 __BEGIN_SYS
@@ -38,8 +36,8 @@ public:
             Engine::clear_interrupts();
             Engine::int_enable();
             IC::enable(int_id);
+
         }
-        _gpios[_port][_pin] = this;
     }
 
     virtual ~GPIO() {
@@ -65,7 +63,7 @@ private:
     Port _port;
     Pin _pin;
 
-    static GPIO * _gpios[PORTS][10];
+    static GPIO * _gpios[PORTS][8];
 };
 
 __END_SYS

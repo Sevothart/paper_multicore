@@ -128,7 +128,7 @@ template<> struct Traits<Thread>: public Traits<Build>
     static const bool simulate_capacity = false;
     static const bool trace_idle = hysterically_debugged;
 
-    typedef Scheduling_Criteria::CPU_Affinity Criterion;
+    typedef Scheduling_Criteria::RM Criterion;
     static const unsigned int QUANTUM = 10000; // us
 };
 
@@ -140,6 +140,11 @@ template<> struct Traits<Scheduler<Thread>>: public Traits<Build>
 template<> struct Traits<Synchronizer>: public Traits<Build>
 {
     static const bool enabled = Traits<System>::multithread;
+};
+
+template<> struct Traits<Semaphore_MPCP<true>>: public Traits<Build>
+{
+    static const unsigned int highest_priority = 50;
 };
 
 template<> struct Traits<Alarm>: public Traits<Build>
@@ -230,6 +235,12 @@ template<> struct Traits<Monitor>: public Traits<Build>
 
     static constexpr unsigned int TRANSDUCER_EVENTS[]             = {};
     static constexpr unsigned int TRANSDUCER_EVENTS_FREQUENCIES[] = {}; // in Hz
+
+    // ANN
+    static const unsigned int MAX_TRAINS = 0;
+    static constexpr float TRAIN_MIN_ERROR = 0;
+    static constexpr int VARIANCE_RANGES[] = {0, 0};
+    static constexpr float VARIANCE_THRESHOLDS[] = {0, 0, 0};
 };
 
 __END_SYS

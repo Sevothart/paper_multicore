@@ -23,7 +23,7 @@ public:
     using Engine::Interrupt_Id;
     using Engine::Interrupt_Handler;
 
-    using IC_Engine::INT_ARM_TIMER; /* ADDED */
+    using Engine::INT_ARM_TIMER;
     using Engine::INT_SYS_TIMER;
     using Engine::INT_USER_TIMER0;
     using Engine::INT_USER_TIMER1;

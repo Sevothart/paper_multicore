@@ -92,14 +92,14 @@ public:
     }
 
     static void handler(Interrupt_Id a) {
-        /* FIXME: How to update GPIO level inside a static function */
+        /* TODO: How to update GPIO level inside a static function */
         kout << "." << endl;
     }
 
     Count count() { return static_cast<Count>(timer(CNTR)); }
 
     void enable() {
-        config(1, 1000000000);
+        config(1, 100000000);
         timer(CONTROL) |= FREE_CNTR;
     }
 
@@ -131,7 +131,7 @@ private:
     */
     static void init() {
         arm_timer()->enable();
-        // arm_timer()->int_enable();
+        arm_timer()->int_enable();
     }
 
 private:

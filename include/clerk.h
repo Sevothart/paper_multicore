@@ -72,7 +72,7 @@ public:
                 it->object()->reset_accounting_clerk();
             }
         }
-        // Thread::reset_statistics();
+        Thread::reset_statistics();
     }
 
     static void process_batch() {
@@ -413,13 +413,55 @@ public:
     ~Clerk() {}
 
     Data read() {
-        return 0;
+        Thread * t = Thread::self();
+        switch(_event) {
+        case Event::ELAPSED_TIME:
+            return Alarm::elapsed();
+        case Event::DEADLINE_MISSES:
+            return t->_statistics.missed_deadlines;
+        case Event::RUNNING_THREAD:
+            return reinterpret_cast<volatile unsigned int>(t);
+        case Event::THREAD_EXECUTION_TIME:
+            if((t->priority() > Thread::Criterion::PERIODIC) && (t->priority() < Thread::Criterion::APERIODIC)) // real-time
+                return t->_statistics.jobs ? t->_statistics.average_execution_time / t->_statistics.jobs : t->_statistics.execution_time;
+            return t->_statistics.execution_time;
+        case Event::CPU_EXECUTION_TIME:
+            return Thread::_Statistics::hyperperiod_idle_time[CPU::id()];
+        case Event::CPU_FREQUENCY:
+            return Machine::frequency();
+        case Event::CPU_WCET:
+            return Thread::_Statistics::wcet_cpu[CPU::id()]; 
+        case Event::THREAD_WCET:
+            return t->_statistics.wcet;
+        default:
+            return 0;
+        }
     }
 
     void start() {}
     void stop() {}
     void reset() {
-        return;
+        Thread* t = Thread::self();
+        switch(_event) {
+        case Event::ELAPSED_TIME:
+            break;
+        case Event::DEADLINE_MISSES:
+            t->_statistics.missed_deadlines = 0;
+            break;
+        case Event::RUNNING_THREAD:
+            break;
+        case Event::THREAD_EXECUTION_TIME:
+            t->_statistics.execution_time = 0;
+            t->_statistics.jobs = 0;
+            t->_statistics.average_execution_time = 0;
+            break;
+        case Event::CPU_EXECUTION_TIME:
+            Thread::_Statistics::idle_time[CPU::id()] = 0;
+            Thread::_Statistics::hyperperiod_idle_time[CPU::id()] = 0;
+            break;
+        default:
+            break;
+        }
     }
 
 private:

@@ -119,14 +119,14 @@ void Semaphore_PCP::p()
   	{
   	  	// I am the new owner
   	  	owner(currentThread());
-  	  	t.stop("pcp_p", this);
+  	  	t.stop("pcp_p_access", this);
   	  	priority(owner()->priority());
   	}
   	else
   	{
   	  	// There is an owner in my way
   	  	// I'll set its priority to the ceiling
-  	  	t.stop("pcp_p", this);
+  	  	t.stop("pcp_p_SetCeiling", this);
   	  	if(owner()->priority() < ceiling()) owner()->priority(ceiling());
   	}
   	Semaphore_RT::p();
@@ -220,51 +220,5 @@ template void Semaphore_MPCP<true>::p();
 template void Semaphore_MPCP<false>::p();
 template void Semaphore_MPCP<true>::v();
 template void Semaphore_MPCP<false>::v();
-
-// SRP IMPLEMENTATION
-void Semaphore_SRP::p()
-{
-  	Semaphore_RT::p();
-  	begin_atomic();
-  	ITimer t;
-  	updateCeiling();
-  	t.stop("srp_p", this);
-  	end_atomic();
-}
-
-void Semaphore_SRP::v()
-{
-  	Semaphore_RT::v();
-  	begin_atomic();
-  	ITimer t;
-  	updateCeiling();
-  	t.stop("srp_v", this);
-  	end_atomic();
-}
-
-Semaphore_SRP* Semaphore_SRP::_resources[MAX_RESOURCES];
-int Semaphore_SRP::_nr = 0;
-int Semaphore_SRP::_system_ceiling = Semaphore_SRP::DEFAULT_CEILING;
-
-bool Scheduling_Criteria::RT_Common::Elector_SRP::eligible(const Scheduling_Criteria::RT_Common * criterion)
-{
-    
-    int prio = ((int)(*criterion));
-
-    // kout << "SRP eligible? ";
-    
-    if(prio == IDLE || prio == MAIN)
-    {
-      //kout << "YES" << endl;
-      return true; // these threads always eligible
-    }
-    
-    // kout << (-(int)_deadline) << " : " << Semaphore_SRP::systemCeiling() << endl;
-    
-    bool el = (-(int)criterion->_deadline) > Semaphore_SRP::systemCeiling();
-    // kout << (el?"YES":"NO") << endl;
-    
-    return el;
-}
 
 __END_SYS

@@ -55,10 +55,10 @@ class Utility;
 // Architecture Hardware Mediators
 class CPU;
 class TSC;
-class ARM_Timer; /* ADDED */
 class MMU;
 class FPU;
 class PMU;
+class ARM_Timer;
 
 // Machine Hardware Mediators
 class Machine;
@@ -125,10 +125,10 @@ class Synchronizer;
 class Mutex;
 class Semaphore;
 class Condition;
-class Semaphore_SRP;
 class Semaphore_PCP;
 class Semaphore_IPCP;
 template<bool T> class Semaphore_MPCP;
+
 
 class Time;
 class Clock;

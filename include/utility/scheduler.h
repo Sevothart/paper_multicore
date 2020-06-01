@@ -156,19 +156,6 @@ namespace Scheduling_Criteria
     // Real-time Algorithms
     class RT_Common: public Priority
     {
-        static const bool srp_enabled = false;//Traits<Thread>::srp_enabled;
-        
-        class Elector_Always {
-            public: static bool eligible(const RT_Common * task) { return true; }
-        };
-        
-        class Elector_SRP {
-            public: static bool eligible(const RT_Common * task); // defined in Semaphore
-        };
-        
-        typedef IF<srp_enabled, Elector_SRP, Elector_Always>::Result Elector;
-        
-        bool eligible() const { return Elector::eligible(this); }
     protected:
         RT_Common(int p): Priority(p), _deadline(0), _period(0), _capacity(0) {} // Aperiodic
         RT_Common(int i, const Microsecond & d, const Microsecond & p, const Microsecond & c)
@@ -277,6 +264,10 @@ namespace Scheduling_Criteria
         using Variable_Queue::queue;
 
         static unsigned int current_queue() { return CPU::id(); }
+
+        static bool charge();
+        static bool collect();
+        static bool award(bool hyperperiod);
     };
 
     // Clustered Earliest Deadline First (multicore)

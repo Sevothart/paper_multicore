@@ -7,8 +7,6 @@
 #include <machine/gpio.h>
 #include <machine/nic.h>
 
-#include <machine/cortex/engine/cortex_a53/bcm_arm_timer.h>
-
 __BEGIN_SYS
 
 // Class attributes
@@ -77,7 +75,7 @@ IC::Interrupt_Handler IC::_eoi_vector[INTS] = {
     0,
     0,
     0,
-    ARM_Timer::arm_eoi, // Was Timer:eoi -> TRAVAVA AQUI E DAVA HALT NO SISTEMA!, não mais ^^.
+    ARM_Timer::arm_eoi, // ARM TIMER INT
     0,
     0,
     0,

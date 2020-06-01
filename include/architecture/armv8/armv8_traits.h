@@ -26,12 +26,6 @@ template<> struct Traits<TSC>: public Traits<Build>
     static const bool enabled = true;
 };
 
-/* ADDED: Traits<ARM_Timer> */
-template<> struct Traits<ARM_Timer>: public Traits<Build>
-{
-    static const bool enabled = true;
-};
-
 template<> struct Traits<PMU>: public Traits<Build>
 {
     static const bool enabled = true;
