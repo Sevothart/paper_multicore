@@ -1,9 +1,6 @@
 #ifndef __raspberry_pi3_gpio_h
 #define __raspberry_pi3_gpio_h
 
-#include <machine/gpio.h>
-#include <architecture/cpu.h>
-
 #include <machine/cortex/engine/cortex_a53/bcm_gpio.h>
 #include <system/memory_map.h>
 
@@ -12,9 +9,8 @@ __BEGIN_SYS
 class GPIO_Engine: public GPIO_Common
 {
 protected:
-    static const unsigned int UNITS = Traits<GPIO>::UNITS;
-    static const unsigned int PORTS = Traits<GPIO>::PORTS;
-
+    static const unsigned int PORTS = Traits<GPIO>::UNITS;
+    
 public:
     GPIO_Engine(const Port & port, const Pin & pin, const Direction & dir, const Pull & p, const Edge & int_edge):
     _gpio(new(reinterpret_cast<void *>(Memory_Map::GPIO_BASE)) BCM_GPIO)

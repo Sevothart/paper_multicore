@@ -99,7 +99,7 @@ public:
     Count count() { return static_cast<Count>(timer(CNTR)); }
 
     void enable() {
-        config(1, 100000000);
+        config(0, 10000000);
         timer(CONTROL) |= FREE_CNTR;
     }
 
@@ -119,16 +119,6 @@ private:
     /* Reference to timer itself, to call methods without the creation of a ARM_Timer object */
     static ARM_Timer * arm_timer() { return reinterpret_cast<ARM_Timer *>(Memory_Map::TIMER1_BASE); }
     
-    /*
-    config(unit, ticks): Handler will be called every ticks/frequency
-    Ex: 5000000 in   1MHz -> called every 5s
-    Ex:  250000 in   1MHz -> called every 0.25s
-    Ex: 5000000 in 250MHz -> called every 0.02s
-    Ex:  250000 in 250MHz -> called every 0.001s
-    Ex:   10000 in 250MHz -> called every 40us
-    Ex:    1000 in 250MHz -> called every 4us
-    Ex:       1 in 250MHz -> called every 4ns
-    */
     static void init() {
         arm_timer()->enable();
         // arm_timer()->int_enable();

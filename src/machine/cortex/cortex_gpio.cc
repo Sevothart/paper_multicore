@@ -2,12 +2,13 @@
 
 #include <machine/ic.h>
 #include <machine/gpio.h>
+#include <machine/cortex/cortex_gpio.h>
 
 #ifdef __GPIO_H
 
 __BEGIN_SYS
 
-GPIO * GPIO::_gpios[PORTS][8];
+GPIO * GPIO::_gpios[PORTS][10];
 
 void GPIO::int_handler(IC::Interrupt_Id id)
 {
@@ -16,6 +17,7 @@ void GPIO::int_handler(IC::Interrupt_Id id)
 
 void GPIO::eoi(IC::Interrupt_Id id)
 {
+    #ifdef __mmod_emote3__
     unsigned int port = id - IC::INT_GPIOA;
     PL061 * pl061 = new(reinterpret_cast<void *>(Memory_Map::GPIOA_BASE + port * 0x1000)) PL061;
     unsigned int mis = pl061->pending_regular_interrupts();
@@ -30,6 +32,7 @@ void GPIO::eoi(IC::Interrupt_Id id)
 
     // Clear regular interrupts even if no handler is available
     pl061->clear_interrupts(0xff);
+    #endif
 }
 
 __END_SYS
