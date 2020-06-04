@@ -3,8 +3,6 @@
 #ifndef __semaphore_h
 #define __semaphore_h
 
-// #include <architecture.h>
-// #include <utility/handler.h>
 #include <synchronizer.h>
 
 __BEGIN_SYS

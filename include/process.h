@@ -144,6 +144,8 @@ public:
     };
 
     union _Dummy_Statistics {
+
+        /*
         // Thread Execution Time (limited to 32bits counting, a hyperperiod greater than 32bits is not supported)
         TSC::Time_Stamp execution_time;
         TSC::Time_Stamp last_execution;
@@ -168,6 +170,56 @@ public:
         static unsigned long long cpu_pmu_accumulated[Traits<Build>::CPUS][COUNTOF(Traits<Monitor>::PMU_EVENTS)];
         static unsigned long long cpu_pmu_last[Traits<Build>::CPUS][COUNTOF(Traits<Monitor>::PMU_EVENTS)];
         static bool cooldown[Traits<Build>::CPUS];
+
+        // CPU Execution Time
+        static TSC::Time_Stamp hyperperiod_idle_time[Traits<Build>::CPUS]; //
+        static TSC::Time_Stamp idle_time[Traits<Build>::CPUS];
+        static TSC::Time_Stamp last_idle[Traits<Build>::CPUS];
+        */
+        
+        // Thread Execution Time (limited to 32bits counting, a hyperperiod greater than 32bits is not supported)
+        TSC::Time_Stamp execution_time;
+        TSC::Time_Stamp last_execution;
+        TSC::Time_Stamp wcet;
+        unsigned int jobs;
+        TSC::Time_Stamp average_execution_time;
+        unsigned int hyperperiod_count_thread;
+        unsigned int period;
+        unsigned int captures; // TO_CHECK
+        unsigned int migrate_to;
+
+        // Dealine Miss count
+        Alarm * alarm_times;
+        unsigned int times_p_count;
+        unsigned int missed_deadlines;
+
+        // ANN
+        float input[COUNTOF(Traits<Monitor>::PMU_EVENTS)+COUNTOF(Traits<Monitor>::SYSTEM_EVENTS)-1];
+        float output;
+
+        // Per Thread PMU
+        unsigned long long thread_pmu_accumulated[COUNTOF(Traits<Monitor>::PMU_EVENTS)];
+        unsigned long long thread_pmu_last[COUNTOF(Traits<Monitor>::PMU_EVENTS)];
+        double variance[COUNTOF(Traits<Monitor>::PMU_EVENTS)];
+        double mean[COUNTOF(Traits<Monitor>::PMU_EVENTS)];
+
+        unsigned long long *thread_monitoring[COUNTOF(Traits<Monitor>::PMU_EVENTS)+COUNTOF(Traits<Monitor>::SYSTEM_EVENTS)];
+
+        // On Migration
+        static TSC::Time_Stamp hyperperiod[Traits<Build>::CPUS];              // recalculate, on _old_hyperperiod + hyperperiod update
+        static TSC::Time_Stamp wcet_cpu[Traits<Build>::CPUS];
+        static TSC::Time_Stamp last_hyperperiod[Traits<Build>::CPUS];      // wait for old hyperperiod and update
+        static unsigned int hyperperiod_count[Traits<Build>::CPUS];        // reset on next hyperperiod
+        static unsigned long long cpu_pmu_accumulated[Traits<Build>::CPUS][COUNTOF(Traits<Monitor>::PMU_EVENTS)];
+        static unsigned long long cpu_pmu_last[Traits<Build>::CPUS][COUNTOF(Traits<Monitor>::PMU_EVENTS)];
+        static bool cooldown[Traits<Build>::CPUS];
+
+        // ANN
+        static bool decrease_frequency[Traits<Build>::CPUS];
+        static bool to_learn[Traits<Build>::CPUS];
+        static bool prediction_ready[Traits<Build>::CPUS];
+        static Thread* threads_cpu[Traits<Build>::CPUS][5];
+        static unsigned int t_count_cpu[Traits<Build>::CPUS];
 
         // CPU Execution Time
         static TSC::Time_Stamp hyperperiod_idle_time[Traits<Build>::CPUS]; //

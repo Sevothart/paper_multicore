@@ -51,6 +51,7 @@ bool Thread::_Statistics::cooldown[Traits<Build>::CPUS] = {true};//, true, true,
 void Thread::constructor_prologue(const Color & color, unsigned int stack_size)
 {
     lock();
+    kout << "Created thread: " << this << endl;
 
     _thread_count++;
     _scheduler.insert(this);
@@ -629,6 +630,7 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         // passing the volatile to switch_constext forces it to push prev onto the stack,
         // disrupting the context (it doesn't make a difference for Intel, which already saves
         // parameters on the stack anyway).
+        kout << "Thread::dispatch(prev=" << prev << ",next=" << next << ")" << endl;
         CPU::switch_context(const_cast<Context **>(&prev->_context), next->_context);
     } else
         if(smp)
@@ -680,7 +682,7 @@ int Thread::idle()
         if(reboot) {
             db<Thread>(WRN) << "Rebooting the machine ..." << endl;
             //Machine::reboot();
-            CPU::halt();
+            CPU::halt(); /* TODO: Back to reboot once the PANIC is fixed */
         } else {
             db<Thread>(WRN) << "Halting the machine ..." << endl;
             CPU::halt();
