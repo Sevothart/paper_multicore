@@ -117,20 +117,20 @@ private:
 
 public:
     ARP(NIC * nic, Network * net): _nic(nic), _net(net) {
-        db<ARP>(TRC) << "ARP::ARP(nic=" << nic << ",net=" << net << ") => " << this << endl;
+        db<IP>(TRC) << "ARP::ARP(nic=" << nic << ",net=" << net << ") => " << this << endl;
 
         _nic->attach(this, NIC::PROTO_ARP);
     }
 
     ~ARP() {
-        db<ARP>(TRC) << "ARP::~ARP(this=" << this << ")" << endl;
+        db<IP>(TRC) << "ARP::~ARP(this=" << this << ")" << endl;
 
         _nic->detach(this, NIC::PROTO_ARP);
 
         lock();
         for(typename Table::Iterator it = _table.begin(); it != _table.end(); it++) {
             if(it) {
-                db<ARP>(INF) << "ARP::~ARP: removing and deleting " << *it->object() << endl;
+                db<IP>(INF) << "ARP::~ARP: removing and deleting " << *it->object() << endl;
 
                 _table.remove(it);
                 delete it->object();
@@ -140,7 +140,7 @@ public:
     }
 
     void insert(const PA & pa, const HA & ha) {
-        db<ARP>(TRC) << "ARP::insert(pa=" << pa << ",ha=" << ha << ")" << endl;
+        db<IP>(TRC) << "ARP::insert(pa=" << pa << ",ha=" << ha << ")" << endl;
 
         Mapping * map = new (SYSTEM) Mapping(pa, ha);
 
@@ -150,17 +150,17 @@ public:
     }
 
     void remove(const PA & pa) {
-        db<ARP>(TRC) << "ARP::remove(pa=" << pa << ")" << endl;
+        db<IP>(TRC) << "ARP::remove(pa=" << pa << ")" << endl;
 
         Element * el = _table.remove_key(pa);
         if(el) {
-            db<ARP>(INF) << "ARP::remove: removing and deleting " << *el->object() << endl;
+            db<IP>(INF) << "ARP::remove: removing and deleting " << *el->object() << endl;
             delete el->object();
         }
     }
 
     HA resolve(const PA & pa) {
-        db<ARP>(TRC) << "ARP::resolve(pa=" << pa << ") => ";
+        db<IP>(TRC) << "ARP::resolve(pa=" << pa << ") => ";
 
         volatile HA ha = HA(HA::NULL);
 
@@ -171,7 +171,7 @@ public:
         if(el)
             ha = el->object()->ha();
         else {
-            db<ARP>(TRC) << "sending requests" << endl;
+            db<IP>(TRC) << "sending requests" << endl;
 
             Semaphore sem(0);
             Mapping * map = new (SYSTEM) Mapping(pa, &sem);
@@ -181,7 +181,7 @@ public:
 
             for(unsigned int i = 0; (i < Traits<Network>::RETRIES) && !ha; i++) {
                 Packet request(REQUEST, _nic->address(), _net->address(), HA::BROADCAST, pa);
-                db<ARP>(INF) << "ARP::resolve:request=" << request << endl;
+                db<IP>(INF) << "ARP::resolve:request=" << request << endl;
                 _nic->send(HA::BROADCAST, NIC::PROTO_ARP, &request, sizeof(Packet));
 
                 Semaphore_Handler handler(&sem);
@@ -198,26 +198,26 @@ public:
             }
             unlock();
 
-            db<ARP>(TRC) << "ARP::resolve(pa=" << pa << ") => ";
+            db<IP>(TRC) << "ARP::resolve(pa=" << pa << ") => ";
         }
 
         // Even being declared volatile, "ha" gets messed up and a PF occurs without the memcpy
         HA ha2;
         memcpy(&ha2, const_cast<HA *>(&ha), sizeof(HA));
 
-        db<ARP>(TRC) << ha2 << endl;
+        db<IP>(TRC) << ha2 << endl;
 
         return ha2;
     }
 
 //    PA resolve(const HA & ha) {
-//        db<ARP>(TRC) << "RARP::resolve(pa=" << ha << ")" << endl;
+//        db<IP>(TRC) << "RARP::resolve(pa=" << ha << ")" << endl;
 //
 //        Condition * cond = _table.insert(pa);
 //        for(unsigned int i = 0; (i < Traits<Network>::RETRIES) && !ha; i++) {
 //            Packet request(REQUEST, _nic->address(), _net->address(), HA::BROADCAST, pa);
 //            _nic->send(HA::BROADCAST, NIC::RARP, &request, sizeof(Packet));
-//            db<ARP>(INF) << "ARP::resolve:sent packet=" << &request << " => " << request << endl;
+//            db<IP>(INF) << "ARP::resolve:sent packet=" << &request << " => " << request << endl;
 //
 //            Condition_Handler handler(cond);
 //            Alarm alarm(Traits<Network>::TIMEOUT * 1000000, &handler, 1);
@@ -226,22 +226,22 @@ public:
 //            ha = _table.search(pa);
 //        }
 //
-//        db<ARP>(INF) << "RARP::resolve(pa=" << pa << ") => " << ha << endl;
+//        db<IP>(INF) << "RARP::resolve(pa=" << pa << ") => " << ha << endl;
 //
 //        return ha;
 //    }
 
     void update(typename NIC::Observed * obs, const typename NIC::Protocol & prot, typename NIC::Buffer * buf)
     {
-        db<ARP>(TRC) << "ARP::update(obs=" << obs << ",prot=" << prot << ",buf=" << buf << ")" << endl;
+        db<IP>(TRC) << "ARP::update(obs=" << obs << ",prot=" << prot << ",buf=" << buf << ")" << endl;
 
         Packet * packet = buf->frame()->template data<Packet>();
-        db<ARP>(INF) << "ARP::update:pkt=" << packet << " => " << *packet << endl;
+        db<IP>(INF) << "ARP::update:pkt=" << packet << " => " << *packet << endl;
 
         if((packet->op() == REQUEST) && (packet->tpa() == _net->address())) {
 
             Packet reply(REPLY, _nic->address(), _net->address(), packet->sha(), packet->spa());
-            db<ARP>(TRC) << "ARP::update: replying query for " << packet->tpa() << " with " << reply << endl;
+            db<IP>(TRC) << "ARP::update: replying query for " << packet->tpa() << " with " << reply << endl;
             _nic->send(packet->sha(), NIC::PROTO_ARP, &reply, sizeof(Packet));
 
         } else if((packet->op() == REPLY) && (packet->tha() == _nic->address())) {
@@ -249,10 +249,10 @@ public:
             lock();
             Element * el = _table.search_key(packet->spa());
             if(el) {
-                db<ARP>(TRC) << "ARP::update: got reply for query on " << packet->spa() << ": " << packet->sha() << endl;
+                db<IP>(TRC) << "ARP::update: got reply for query on " << packet->spa() << ": " << packet->sha() << endl;
                 el->object()->update(packet->sha());
             } else
-                db<ARP>(WRN) << "ARP::update: got reply for query on " << packet->spa() << ", which is not in table!" << endl;
+                db<IP>(WRN) << "ARP::update: got reply for query on " << packet->spa() << ", which is not in table!" << endl;
             unlock();
 
         }
@@ -261,14 +261,14 @@ public:
     }
 
     void dump() {
-        db<ARP>(INF) << "ARP::Table => {" << endl;
+        db<IP>(INF) << "ARP::Table => {" << endl;
         for(typename Table::Iterator it = _table.begin(); it != _table.end(); it++) {
             if(it)
-                db<ARP>(INF) << hex << it << " => {" << it->key() << "," << it->object()->ha() << "}" << endl;
+                db<IP>(INF) << hex << it << " => {" << it->key() << "," << it->object()->ha() << "}" << endl;
             else
-                db<ARP>(INF) << hex << it << " => EMPTY" << endl;
+                db<IP>(INF) << hex << it << " => EMPTY" << endl;
         }
-        db<ARP>(INF) << "}" << endl;
+        db<IP>(INF) << "}" << endl;
 
     }
 

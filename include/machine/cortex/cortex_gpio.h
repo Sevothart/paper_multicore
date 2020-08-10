@@ -63,7 +63,7 @@ private:
     Port _port;
     Pin _pin;
 
-    static GPIO * _gpios[PORTS][10];
+    static GPIO * _gpios[PORTS][8];
 };
 
 __END_SYS

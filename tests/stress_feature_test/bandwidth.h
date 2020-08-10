@@ -2,8 +2,8 @@
 #define _BAND_
 
 #define CACHE_LINE_SIZE 64       /* cache Line size is 64 byte */
-#define DEFAULT_ALLOC_SIZE_KB 65536//16384 //524288 //16384
-                              //64KB
+#define DEFAULT_ALLOC_SIZE_KB 16384 //524288 //16384
+
 
 /**************************************************************************
  * Public Types
@@ -31,11 +31,11 @@ unsigned int bench_write(unsigned int *g_mem_ptr)
 {
     register unsigned int i;
     for ( i = 0; i < G_MEM_SIZE/sizeof(unsigned int); i+=(CACHE_LINE_SIZE/sizeof(unsigned int)) ) {
-        g_mem_ptr[i] += i;
+        g_mem_ptr[i] = i;
     }
-    //for ( i = 0; i < G_MEM_SIZE/sizeof(unsigned int); i+=(CACHE_LINE_SIZE/sizeof(unsigned int)) ) {
-    //    g_mem_ptr[i] = i;
-    //}
+    for ( i = 0; i < G_MEM_SIZE/sizeof(unsigned int); i+=(CACHE_LINE_SIZE/sizeof(unsigned int)) ) {
+        g_mem_ptr[i] = i;
+    }
     return G_MEM_SIZE;
 }
 

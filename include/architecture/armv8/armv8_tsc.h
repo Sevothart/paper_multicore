@@ -14,7 +14,7 @@ class TSC: private TSC_Common
     friend class IC;
 
 private:
-    static const unsigned int CLOCK = Traits<Build>::MODEL == Traits<Build>::Raspberry_Pi3 ? 1000000 : Traits<CPU>::CLOCK; /// (Traits<Build>::MODEL == Traits<Build>::Zynq ? 2 : 1);
+    static const unsigned int CLOCK = Traits<CPU>::CLOCK / (Traits<Build>::MODEL == Traits<Build>::Zynq ? 2 : 1);
     static const unsigned int ACCURACY = 40000; // ppb
 
     enum {
@@ -35,20 +35,10 @@ private:
         GTISR  = 0x0C  // Interrupt Status
     };
 
-    // BCM2835 cortex-a53 System Timer
-    enum {                                      // Description
-        STCS                        = 0x00,     // Control/Status
-        STCLO                       = 0x04,     // Low COUNTER
-        STCHI                       = 0x08,     // High Counter
-        STC0                        = 0x0C,     // Compare 0 - Used by GPU
-        STC1                        = 0x10,     // Compare 1 - Value used to generate interrupt 1
-        STC2                        = 0X14,     // Compare 2 - Used by GPU
-        STC3                        = 0X18      // Compare 3 - Value used to generate interrupt 3
-        // Interrupts mapped to "Enable IRQ 1" - c1 and c3 == irq1 and irq3
-    };
-
-
 public:
+    using TSC_Common::Hertz;
+    using TSC_Common::PPM;
+    using TSC_Common::PPB;
     using TSC_Common::Time_Stamp;
 
     static const unsigned int FREQUENCY = CLOCK;
@@ -61,11 +51,8 @@ public:
 
     static Time_Stamp time_stamp() {
 
-#ifdef __cortex_a__
+#ifdef __mach_cortex_a__
 
-#if defined(__mmod_raspberry_pi3__)
-        return reg(STCLO);
-#else
         if(sizeof(Time_Stamp) == sizeof(CPU::Reg32))
             return reg(GTCTRL);
 
@@ -78,10 +65,9 @@ public:
         } while(reg(GTCTRH) != high);
 
         return (high << 32) | low;
-#endif
 
 #endif
-#ifdef __cortex_m__
+#ifdef __mach_cortex_m__
 
         return (_overflow << 32) + reg(GPTMTAR); // Not supported by LM3S811 on QEMU (version 2.7.50)
 

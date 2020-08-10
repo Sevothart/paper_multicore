@@ -8,16 +8,12 @@ __BEGIN_SYS
 #ifdef __PMU_H
 
 bool Clerk<PMU>::_in_use[Traits<Build>::CPUS][CHANNELS];
-constexpr CPU::Reg32 ARMv8_A_PMU::_events[PMU::EVENTS];
 
 #endif
 
 // System_Monitor
 Simple_List<Monitor> Monitor::_monitors[Traits<Build>::CPUS];
-FANN_EPOS::fann * Monitor::ann[Traits<Build>::CPUS];
-unsigned int Monitor::ann_out[Traits<Build>::CPUS][100*30];
-unsigned int Monitor::ann_captures[Traits<Build>::CPUS];
-bool Monitor::_enable;
+volatile bool Monitor::_enable;
 
 void Monitor::run()
 {
@@ -31,10 +27,10 @@ void Monitor::run()
 
 void Monitor::init()
 {
-    if(!CPU::id())
-        db<Monitor>(WRN) << "Monitor::init()" << TOTAL_EVENTS_MONITORED << endl;
-    ann[ CPU::id()] = FANN_EPOS::fann_create_from_config();
-    ann_captures[ CPU::id()] = 0;
+    db<Monitor>(TRC) << "Monitor::init()" << endl;
+
+    if(Traits<System>::monitored)
+        init_system_monitoring<0>();
 
 #ifdef __PMU_H
 
@@ -42,9 +38,6 @@ void Monitor::init()
         init_pmu_monitoring<0>();
 
 #endif
-
-    if(Traits<System>::monitored)
-        init_system_monitoring<0>();
 
 }
 

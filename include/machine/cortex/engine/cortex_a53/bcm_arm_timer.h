@@ -4,11 +4,6 @@
 #define __arm_timer_h
 
 #include <architecture/cpu.h>
-
-#include <machine/cortex/raspberry_pi3/raspberry_pi3_gpio.h>
-#include <machine/cortex/cortex_ic.h>
-#include <system/memory_map.h>
-
 #define __common_only__
 #include <machine/rtc.h>
 #include <machine/timer.h>
@@ -16,31 +11,19 @@
 
 __BEGIN_SYS
 
-/*
-ADDED: Methods init, enable, disable, arm_eoi, int_enable, handler and arm_timer 
-
-TODO: Add ARM_Timer to Alarm and Chronometer of the system, instead of TSC.
-system/config.h:
-    Should add a macro like this #define __ARM_TIMER_H        __HEADER_ARCH(arm_timer);
-architecture/armv7/cpu_init.cc:
-    Should have a new #ifdef __ARM_TIMER_H that would call init method if Traits<ARM_TIMER>::enabled
-*/
-
 class ARM_Timer : public Timer_Common
 {
-    friend class CPU;
+    // This is a hardware object
+    // Use with something like "new (Memory_Map::TIMER1_BASE) ARM_Timer"
 
 private:
     typedef CPU::Reg32 Reg32;
-    typedef CPU::Reg16 Reg16;
-    typedef CPU::Reg8 Reg8;
     typedef IC_Common::Interrupt_Id Interrupt_Id;
-    typedef IC_Engine::Interrupt_Handler Interrupt_Handler;
 
 public:
     typedef CPU::Reg64 Count;
 
-    static const unsigned int CLOCK = 250000000 / 1; // 250 MHz / PRE_DIV (0xFA == 250)
+    static const unsigned int CLOCK = 250000000 / 250; // 250 MHz / PRE_DIV (0xFA == 250)
 
     // Usefull Off-set Register from TIMER1_BASE
     enum {
@@ -66,67 +49,40 @@ public:
     };
 
 public:
+    //b2f8
     void config(unsigned int unit, const Count & count) {
         timer(CONTROL) = FREE_CLOCK;
         timer(RELOAD) = count;
         timer(LOAD) = count;
-        timer(PRE_DIV) = 0x01; //0xFA
+        timer(PRE_DIV) = 0xFA;
         timer(IRQ_CLR) = 0;
-        timer(CONTROL) = TIMER_EN | PRE_SCALE | CNTR_SIZE; //0x3e00a2
+        timer(CONTROL) = FREE_CLOCK | TIMER_EN | INT_EN | PRE_SCALE | CNTR_SIZE; //0x3e00a2
     }
 
-    void eoi(IC::Interrupt_Id id) {
+    Count count() {
+        return static_cast<Count>(timer(CNTR));
+    }
+
+    void eoi() {
         timer(IRQ_CLR) = 0;
         /* ASM("dsb \t\n isb"); */
         while (timer(RAW_IRQ));
     }
 
-    /* This is added to _eoi_vector of system in raspberry_pi3_ic_init.cc */
-    static void arm_eoi(IC::Interrupt_Id id){ arm_timer()->eoi(id); }
-
-    void int_enable() {
-        timer(CONTROL) |= INT_EN;
-
-        IC::enable( IC::INT_ARM_TIMER );
-        IC::int_vector( IC::INT_ARM_TIMER, reinterpret_cast<Interrupt_Handler>(&handler) );
-    }
-
-    static void handler(Interrupt_Id a) {
-        /* TODO: How to update GPIO level inside a static function */
-        kout << "." << endl;
-    }
-
-    Count count() { return static_cast<Count>(timer(CNTR)); }
-
     void enable() {
-        config(0, 10000000);
-        timer(CONTROL) |= FREE_CNTR;
     }
 
     void disable() {
-        timer(CONTROL) = FREE_CLOCK;
-        timer(CONTROL) |= 0 << 9; 
-        timer(CONTROL) |= 0 << 7;
     }
 
-    void set(const Count & count) { timer(RELOAD) = count; }
+    void set(const Count & count) {
+        timer(RELOAD) = count;
+    }
+
     Hertz clock() { return CLOCK; }
 
 private:
-    /* Reference to base adress of the timer, access to registers */
-    volatile Reg32 & timer(unsigned int o) { return reinterpret_cast<volatile Reg32 *>(Memory_Map::TIMER1_BASE)[o / sizeof(Reg32)]; }
-
-    /* Reference to timer itself, to call methods without the creation of a ARM_Timer object */
-    static ARM_Timer * arm_timer() { return reinterpret_cast<ARM_Timer *>(Memory_Map::TIMER1_BASE); }
-    
-    static void init() {
-        arm_timer()->enable();
-        // arm_timer()->int_enable();
-    }
-
-private:
-    /* This GPIO pin bellow can be utilized to ensure ARM_Timer frequency on an oscilloscope */
-    GPIO_Engine * _osc_pin;
+    volatile Reg32 & timer(unsigned int o) { return reinterpret_cast<volatile Reg32 *>(this)[o / sizeof(Reg32)]; }
 };
 
 __END_SYS

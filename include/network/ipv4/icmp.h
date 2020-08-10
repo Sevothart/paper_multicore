@@ -159,13 +159,13 @@ public:
 
 protected:
     ICMP() {
-        db<ICMP>(TRC) << "ICMP::ICMP()" << endl;
+        db<IP>(TRC) << "ICMP::ICMP()" << endl;
         IP::attach(this, IP::ICMP);
     }
 
 public:
     ~ICMP() {
-        db<ICMP>(TRC) << "ICMP::ICMP()" << endl;
+        db<IP>(TRC) << "ICMP::ICMP()" << endl;
         IP::detach(this, IP::ICMP);
     }
 

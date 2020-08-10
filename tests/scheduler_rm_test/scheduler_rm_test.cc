@@ -13,9 +13,9 @@ const unsigned int wcet_a = 50; // ms
 const unsigned int wcet_b = 20; // ms
 const unsigned int wcet_c = 10; // ms
 
-void func_a();
-void func_b();
-void func_c();
+int func_a();
+int func_b();
+int func_c();
 long max(unsigned int a, unsigned int b, unsigned int c) { return ((a >= b) && (a >= c)) ? a : ((b >= a) && (b >= c) ? b : c); }
 
 OStream cout;
@@ -59,30 +59,26 @@ int main()
     cout << "Threads will now be created and I'll wait for them to finish..." << endl;
 
     // p,d,c,act,t
-    //thread_a = new Periodic_Thread(RTConf(period_a * 1000, 0, 0, 0, iterations), &func_a);
-    thread_a = new RT_Thread(&func_a, period_a * 1000, period_a * 1000, 0, 0, iterations);
-    //thread_b = new Periodic_Thread(RTConf(period_b * 1000, 0, 0, 0, iterations), &func_b);
-    thread_b = new RT_Thread(&func_b, period_b * 1000, period_b * 1000, 0, 0, iterations);
-    //thread_c = new Periodic_Thread(RTConf(period_c * 1000, 0, 0, 0, iterations), &func_c);
-    thread_c = new RT_Thread(&func_c, period_c * 1000, period_c * 1000, 0, 0, iterations);
+    thread_a = new Periodic_Thread(RTConf(period_a * 1000, 0, 0, 0, iterations), &func_a);
+    thread_b = new Periodic_Thread(RTConf(period_b * 1000, 0, 0, 0, iterations), &func_b);
+    thread_c = new Periodic_Thread(RTConf(period_c * 1000, 0, 0, 0, iterations), &func_c);
 
     exec('M');
 
     chrono.start();
 
-    int status_a = thread_a->join(); // will return 0, RT_Thread entry return value
-    int status_b = thread_b->join(); // will return 0, RT_Thread entry return value
-    int status_c = thread_c->join(); // will return 0, RT_Thread entry return value
+    int status_a = thread_a->join();
+    int status_b = thread_b->join();
+    int status_c = thread_c->join();
 
     chrono.stop();
 
     exec('M');
 
     cout << "\n... done!" << endl;
-    cout << "\n\nThread A exited with status \"" << status_a //char(status_a)
-         << "\", thread B exited with status \"" << status_b //char(status_b)
-         << "\" and thread C exited with status \"" << status_c //char(status_c) 
-         << "\"." << endl;
+    cout << "\n\nThread A exited with status \"" << char(status_a)
+         << "\", thread B exited with status \"" << char(status_b)
+         << "\" and thread C exited with status \"" << char(status_c) << "." << endl;
 
     cout << "\nThe estimated time to run the test was "
          << max(period_a, period_b, period_c) * iterations
@@ -93,53 +89,41 @@ int main()
     return 0;
 }
 
-void func_a()
+int func_a()
 {
-    static int iter = 0;
+    exec('A');
 
-    if (iter == 0 || iter == iterations-1)
-        exec('A');
-    else
-    //do {
+    do {
         exec('a', wcet_a);
-    //} while (Periodic_Thread::wait_next());
+    } while (Periodic_Thread::wait_next());
 
-    //exec('A');
-    iter++;
+    exec('A');
 
-    //return 'A';
+    return 'A';
 }
 
-void func_b()
+int func_b()
 {
-    static int iter = 0;
+    exec('B');
 
-    if (iter == 0 || iter == iterations-1)
-        exec('B');
-    else
-    //do {
+    do {
         exec('b', wcet_b);
-    //} while (Periodic_Thread::wait_next());
+    } while (Periodic_Thread::wait_next());
 
-    //exec('B');
-    iter++;
+    exec('B');
 
-    //return 'B';
+    return 'B';
 }
 
-void func_c()
+int func_c()
 {
-    static int iter = 0;
+    exec('C');
 
-    if (iter == 0 || iter == iterations-1)
-        exec('C');
-    else
-    //do {
+    do {
         exec('c', wcet_c);
-    //} while (Periodic_Thread::wait_next());
+    } while (Periodic_Thread::wait_next());
 
-    //exec('C');
-    iter++;
+    exec('C');
 
-    //return 'C';
+    return 'C';
 }

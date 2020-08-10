@@ -105,22 +105,22 @@ public:
     };
 
 public:
-    void wait_mailbox_write() {
+    static void wait_mailbox_write() {
         while (ioc(MBOX0_STATUS) & MBOX_FULL)
             ASM ("nop");
     }
 
-    void wait_mailbox_read() {
+    static void wait_mailbox_read() {
         while (ioc(MBOX0_STATUS) & MBOX_EMPTY)
             ASM ("nop");
     }
 
-    void writeMailbox0(Reg32 data, Reg32 channel) {
+    static void writeMailbox0(Reg32 data, Reg32 channel) {
         wait_mailbox_write();
         ioc(MBOX0_WRITE) = (data &~0xf) | (Reg32) (channel & 0xf);
     }
 
-    Reg32 readMailbox0(Reg32 channel) {
+    static Reg32 readMailbox0(Reg32 channel) {
         Reg32 res;
         Reg32 read_channel;
         wait_mailbox_read();
@@ -131,7 +131,7 @@ public:
         return (res>>4);
     }
 
-    void prepare_call(volatile struct mailbox_msg* msg, Reg32 id, Reg32 tag) {
+    static void prepare_call(volatile struct mailbox_msg* msg, Reg32 id, Reg32 tag) {
         msg->msg_size = sizeof(struct mailbox_msg);
         msg->request_code = 0x0;
         msg->tag.tag_id = tag;
@@ -142,7 +142,7 @@ public:
         msg->end_tag = 0x0;
     }
 
-    void prepare_req(volatile struct set_mailbox_msg* msg, Reg32 id, Reg32 tag, unsigned int value) {
+    static void prepare_req(volatile struct set_mailbox_msg* msg, Reg32 id, Reg32 tag, unsigned int value) {
         msg->msg_size = sizeof(struct set_mailbox_msg);
         msg->request_code = 0x0;
         msg->tag.tag_id = tag;
@@ -154,7 +154,7 @@ public:
         msg->end_tag = 0x0;
     }
 
-    void clean_msg(volatile struct mailbox_msg* msg) {
+    static void clean_msg(volatile struct mailbox_msg* msg) {
         msg->msg_size = 0x0;
         msg->request_code = 0x0;
         msg->tag.tag_id = 0x0;
@@ -165,48 +165,48 @@ public:
         msg->end_tag = 0x0;
     }
 
-    Reg32 temperature() {
-        volatile struct mailbox_msg * local= (volatile struct mailbox_msg *)(Memory_Map::MBOX_COM_BASE+MBOX_COM_CPU_OFFSET*CPU::id());
+    static Reg32 temperature() {
+        volatile struct mailbox_msg * local= (volatile struct mailbox_msg *)(Memory_Map::MBOX_COM_BASE+MBOX_COM_CPU_OFFSET*Machine::cpu_id());
         prepare_call(local, (Reg32)TEMPERATURE_ID, (Reg32)TEMPERATURE_TAG);
         writeMailbox0((unsigned long)local, 8);
         readMailbox0(8);
         return local->tag.val2;
     }
 
-    Reg32 arm_clock() {
-        volatile struct mailbox_msg * local= (volatile struct mailbox_msg *)(Memory_Map::MBOX_COM_BASE+MBOX_COM_CPU_OFFSET*CPU::id());
+    static Reg32 arm_clock() {
+        volatile struct mailbox_msg * local= (volatile struct mailbox_msg *)(Memory_Map::MBOX_COM_BASE+MBOX_COM_CPU_OFFSET*Machine::cpu_id());
         prepare_call(local, (Reg32)ARM_CLOCK_ID, (Reg32)CLOCK_TAG);
         writeMailbox0((unsigned long)local, 8);
         readMailbox0(8);
         return local->tag.val2;
     }
 
-    Reg32 arm_voltage() {
-        volatile struct mailbox_msg * local= (volatile struct mailbox_msg *)(Memory_Map::MBOX_COM_BASE+MBOX_COM_CPU_OFFSET*CPU::id());
+    static Reg32 arm_voltage() {
+        volatile struct mailbox_msg * local= (volatile struct mailbox_msg *)(Memory_Map::MBOX_COM_BASE+MBOX_COM_CPU_OFFSET*Machine::cpu_id());
         prepare_call(local, (Reg32)VOLTAGE_ID, (Reg32)VOLTAGE_TAG);
         writeMailbox0((unsigned long)local, 8);
         readMailbox0(8);
         return local->tag.val2;
     }
 
-    Reg32 arm_min_clock() {
-        volatile struct mailbox_msg * local= (volatile struct mailbox_msg *)(Memory_Map::MBOX_COM_BASE+MBOX_COM_CPU_OFFSET*CPU::id());
+    static Reg32 arm_min_clock() {
+        volatile struct mailbox_msg * local= (volatile struct mailbox_msg *)(Memory_Map::MBOX_COM_BASE+MBOX_COM_CPU_OFFSET*Machine::cpu_id());
         prepare_call(local, (Reg32)ARM_CLOCK_ID, (Reg32)CLOCK_MIN_TAG);
         writeMailbox0((unsigned long)local, 8);
         readMailbox0(8);
         return local->tag.val2;
     }
 
-    Reg32 arm_max_clock() {
-        volatile struct mailbox_msg * local= (volatile struct mailbox_msg *)(Memory_Map::MBOX_COM_BASE+MBOX_COM_CPU_OFFSET*CPU::id());
+    static Reg32 arm_max_clock() {
+        volatile struct mailbox_msg * local= (volatile struct mailbox_msg *)(Memory_Map::MBOX_COM_BASE+MBOX_COM_CPU_OFFSET*Machine::cpu_id());
         prepare_call(local, (Reg32)ARM_CLOCK_ID, (Reg32)CLOCK_MAX_TAG);
         writeMailbox0((unsigned long)local, 8);
         readMailbox0(8);
         return local->tag.val2;
     }
 
-    Reg32 arm_clock(unsigned int hertz) {
-        volatile struct set_mailbox_msg * local= (volatile struct set_mailbox_msg *)(Memory_Map::MBOX_COM_BASE+MBOX_COM_CPU_OFFSET*CPU::id());
+    static Reg32 arm_clock(unsigned int hertz) {
+        volatile struct set_mailbox_msg * local= (volatile struct set_mailbox_msg *)(Memory_Map::MBOX_COM_BASE+MBOX_COM_CPU_OFFSET*Machine::cpu_id());
         prepare_req(local, (Reg32)ARM_CLOCK_ID, (Reg32)DVFS_TAG, hertz);
         writeMailbox0((unsigned long)local, 8);
         readMailbox0(8);

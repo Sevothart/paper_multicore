@@ -12,10 +12,8 @@ class CRC;
 class Debug;
 class ELF;
 class Handler;
-class Hashes;
-class Heaps;
 class Lists;
-class Observeds;
+class Heaps;
 class Observers;
 class OStream;
 class Predictors;
@@ -58,7 +56,6 @@ class TSC;
 class MMU;
 class FPU;
 class PMU;
-class ARM_Timer;
 
 // Machine Hardware Mediators
 class Machine;
@@ -121,14 +118,16 @@ class Task;
 class Address_Space;
 class Segment;
 
+template<bool> class Synchronizer_Common;
 class Synchronizer;
 class Mutex;
 class Semaphore;
-class Condition;
+template<bool> class Semaphore_Template;
 class Semaphore_PCP;
 class Semaphore_IPCP;
 template<bool T> class Semaphore_MPCP;
-
+template<bool T, bool Q> class Semaphore_MSRP;
+class Condition;
 
 class Time;
 class Clock;
@@ -138,7 +137,6 @@ class Delay;
 
 template<typename T> class Clerk;
 class Monitor;
-class FANN_EPOS;
 
 class Network;
 class ELP;
@@ -217,9 +215,6 @@ struct Traits_Tokens
         CPU_EXECUTION_TIME,
         THREAD_EXECUTION_TIME,
         RUNNING_THREAD,
-        CPU_FREQUENCY,
-        CPU_WCET,
-        THREAD_WCET,
     };
 
     // Monitor events (PMU)
@@ -326,37 +321,6 @@ struct Traits_Tokens
         INTERLOCK_CYCLE_ADV_SIMD_FP_INST_CA53,
         INTERLOCK_CYCLE_WR_STAGE_STALL_BC_MISS_CA53,
         INTERLOCK_CYCLE_WR_STAGE_STALL_BC_STR_CA53,
-        // ARMv8 does not have Cortex A9 events.
-        BUS_ACCESS_LD_CA53_v8 = 24,
-        BUS_ACCESS_ST_CA53_v8,
-        BR_INDIRECT_SPEC_CA53_v8,
-        EXC_IRQ_CA53_v8,
-        EXC_FIQ_CA53_v8,
-        EXTERNAL_MEM_REQUEST_CA53_v8,
-        EXTERNAL_MEM_REQUEST_NON_CA53CHEABLE_CA53_v8,
-        PREFETCH_LINEFILL_CA53_v8,
-        ICA53CHE_THROTTLE_CA53_v8,
-        ENTER_READ_ALLOC_MODE_CA53_v8,
-        READ_ALLOC_MODE_CA53_v8,
-        PRE_DECODE_ERROR_CA53_v8,
-        DATA_WRITE_STALL_ST_BUFFER_FULL_CA53_v8,
-        SCU_SNOOPED_DATA_FROM_OTHER_CPU_CA53_v8,
-        CONDITIONAL_BRANCH_EXECUTED_CA53_v8,
-        IND_BR_MISP_CA53_v8,
-        IND_BR_MISP_ADDRESS_MISCOMPARE_CA53_v8,
-        CONDITIONAL_BRANCH_MISP_CA53_v8,
-        L1_ICA53CHE_MEM_ERROR_CA53_v8,
-        L1_DCA53CHE_MEM_ERROR_CA53_v8,
-        TLB_MEM_ERROR_CA53_v8,
-        EMPTY_DPU_IQ_NOT_GUILTY_CA53_v8,
-        EMPTY_DPU_IQ_ICA53CHE_MISS_CA53_v8,
-        EMPTY_DPU_IQ_IMICRO_TLB_MISS_CA53_v8,
-        EMPTY_DPU_IQ_PRE_DECODE_ERROR_CA53_v8,
-        INTERLOCK_CYCLE_NOT_GUILTY_CA53_v8,
-        INTERLOCK_CYCLE_LD_ST_WAIT_AGU_ADDRESS_CA53_v8,
-        INTERLOCK_CYCLE_ADV_SIMD_FP_INST_CA53_v8,
-        INTERLOCK_CYCLE_WR_STAGE_STALL_BC_MISS_CA53_v8,
-        INTERLOCK_CYCLE_WR_STAGE_STALL_BC_STR_CA53_v8,
 
         // Intel Sandy Bridge specific events
         UNHALTED_REFERENCE_CYCLES_SB                    = 1,
@@ -574,42 +538,6 @@ struct Traits {
     static const bool hysterically_debugged = false;
 
     typedef ALIST<> ASPECTS;
-};
-
-template<> struct Traits<Scheduling_Criteria::PEDF>: public Traits_Tokens
-{
-    static constexpr System_Event SYSTEM_EVENTS[]                 = {THREAD_EXECUTION_TIME, CPU_FREQUENCY, DEADLINE_MISSES};
-    static constexpr unsigned int SYSTEM_EVENTS_FREQUENCIES[]     = {2, 2, 2                };//{106, 106};// // in Hz
-
-    static constexpr PMU_Event PMU_EVENTS[]                       = {BUS_ACCESS_ST_CA53_v8, DATA_WRITE_STALL_ST_BUFFER_FULL_CA53_v8, IMMEDIATE_BRANCHES_CA, L2D_WRITEBACK, CPU_CYCLES, L1_CACHE_HITS};
-    static constexpr unsigned int PMU_EVENTS_FREQUENCIES[]        = {2,2,2,2,2,2};//,106,106,106}; // in Hz
-
-    static constexpr unsigned int TRANSDUCER_EVENTS[]             = {};
-    static constexpr unsigned int TRANSDUCER_EVENTS_FREQUENCIES[] = {}; // in Hz
-
-    // ANN
-    static const unsigned int MAX_TRAINS = 8;
-    static constexpr float TRAIN_MIN_ERROR = 0.02;
-    static constexpr int VARIANCE_RANGES[] = {100, 500};
-    static constexpr float VARIANCE_THRESHOLDS[] = {0.05, 0.1, 0.2};
-};
-
-template<> struct Traits<Scheduling_Criteria::Priority>: public Traits_Tokens
-{
-    static constexpr System_Event SYSTEM_EVENTS[]                 = {THREAD_EXECUTION_TIME, CPU_FREQUENCY, DEADLINE_MISSES};
-    static constexpr unsigned int SYSTEM_EVENTS_FREQUENCIES[]     = {2, 2, 2                };//{106, 106};// // in Hz
-
-    static constexpr PMU_Event PMU_EVENTS[]                       = {BUS_ACCESS_ST_CA53_v8, DATA_WRITE_STALL_ST_BUFFER_FULL_CA53_v8, IMMEDIATE_BRANCHES_CA, L2D_WRITEBACK, CPU_CYCLES, L1_CACHE_HITS};
-    static constexpr unsigned int PMU_EVENTS_FREQUENCIES[]        = {2,2,2,2,2,2};//,106,106,106}; // in Hz
-
-    static constexpr unsigned int TRANSDUCER_EVENTS[]             = {};
-    static constexpr unsigned int TRANSDUCER_EVENTS_FREQUENCIES[] = {}; // in Hz
-
-    // ANN
-    static const unsigned int MAX_TRAINS = 0;
-    static constexpr float TRAIN_MIN_ERROR = 0;
-    static constexpr int VARIANCE_RANGES[] = {0, 0};
-    static constexpr float VARIANCE_THRESHOLDS[] = {0, 0, 0};
 };
 
 __END_SYS

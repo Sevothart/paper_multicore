@@ -12,7 +12,7 @@ ICMP::Observed ICMP::_observed;
 // Methods
 int ICMP::send(const Address & from, const Address & to, const void * data, unsigned int s)
 {
-    db<ICMP>(TRC) << "ICMP::send(t=" << to << ",d=" << data << ",s=" << s << ")" << endl;
+    db<IP>(TRC) << "ICMP::send(t=" << to << ",d=" << data << ",s=" << s << ")" << endl;
 
     Buffer * buf = IP::alloc(to, IP::ICMP, sizeof(Header), sizeof(Data));
     if(!buf)
@@ -32,14 +32,14 @@ int ICMP::send(const Address & from, const Address & to, const void * data, unsi
 
 int ICMP::receive(Buffer * buf, Address * from, void * data, unsigned int s)
 {
-    db<ICMP>(TRC) << "ICMP::receive(buf=" << buf << ",d=" << data << ",s=" << s << ")" << endl;
+    db<IP>(TRC) << "ICMP::receive(buf=" << buf << ",d=" << data << ",s=" << s << ")" << endl;
 
     IP::Packet * dgram = buf->frame()->data<IP::Packet>();
     Packet * packet = dgram->data<Packet>();
     unsigned int size = (s >= sizeof(Packet)) ? sizeof(Packet) : s;
 
     if(!packet->check()) {
-        db<ICMP>(INF) << "ICMP::update: wrong checksum!" << endl;
+        db<IP>(INF) << "ICMP::update: wrong checksum!" << endl;
         buf->nic()->free(buf);
         return 0;
     }
@@ -53,7 +53,7 @@ int ICMP::receive(Buffer * buf, Address * from, void * data, unsigned int s)
 
 void ICMP::update(IP::Observed * obs, const IP::Protocol & prot, Buffer * buf)
 {
-    db<ICMP>(TRC) << "ICMP::update(obs=" << obs << ",prot=" << prot << ",buf=" << buf << ")" << endl;
+    db<IP>(TRC) << "ICMP::update(obs=" << obs << ",prot=" << prot << ",buf=" << buf << ")" << endl;
 
     if(!notify(0, buf))
         buf->nic()->free(buf);

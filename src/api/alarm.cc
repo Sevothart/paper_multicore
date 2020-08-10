@@ -1,7 +1,7 @@
 // EPOS Alarm Implementation
 
 #include <machine/display.h>
-#include <semaphore.h>
+#include <synchronizer.h>
 #include <time.h>
 #include <process.h>
 
@@ -87,9 +87,7 @@ void Alarm::delay(const Microsecond & time)
     Semaphore semaphore(0);
     Semaphore_Handler handler(&semaphore);
     Alarm alarm(time, &handler, 1); // if time < tick trigger v()
-    kout << "BEFORE ALARM" << endl;
     semaphore.p();
-    kout << "AFTER ALARM" << endl;
 }
 
 
@@ -98,9 +96,6 @@ void Alarm::handler(IC::Interrupt_Id i)
     lock();
 
     _elapsed++;
-
-    //if (!(_elapsed % 1000))
-    //    db<Thread>(WRN) << _elapsed << endl;
 
     if(Traits<Alarm>::visible) {
         Display display;

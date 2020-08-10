@@ -43,29 +43,28 @@
 
 #include <architecture/tsc.h>
 #include <real-time.h>
-#include <utility/convert.h>
 
 using namespace EPOS;
 
 OStream cout;
 
-const unsigned int MAX_EXECS = 1;
+#define MAX_EXECS 1000
 
-// // img1 and img2 size dependent
-const unsigned int PERIOD   = 6000000; // IA32 == 160000 
-const unsigned int DEADLINE = 6000000; // IA32 == 160000
-const unsigned int WCET     = 5700000; // IA32 == 155000
+// img1 and img2 size dependent
+#define PERIOD   6000000// IA32 == 160000 
+#define DEADLINE 6000000// IA32 == 160000
+#define WCET     5700000// IA32 == 155000
+
 
 extern signed char img1[];
 extern signed char img2[];
 
-TSC::Time_Stamp diff = 0;
-
-void FuncTask1()
+/* First task */
+int FuncTask1()
 {
     int rows = 32;
     int cols = 32;
-    I2D *imleft, *imright, *retDisparity;
+I2D *imleft, *imright, *retDisparity;
 
     //char * im2, * im1;
     int WIN_SZ=8, SHIFT=64;
@@ -73,60 +72,96 @@ void FuncTask1()
     // Reading BMP image
     char signature[2]= {66, 77};
 
+
+
     short int bits_per_pixel = 24;
 
     unsigned long long startCycles;
     unsigned long long endCycles;
+    unsigned long long elapsed;
 
     u32 sctlr;
 
+
     I2D* srcImage;
 
-    srcImage = (I2D*)img1;
+    int iterations;
+    for(iterations = 0; iterations < MAX_EXECS; iterations++) {
+        Periodic_Thread::wait_next();
+        
+        srcImage = (I2D*)img1;
 
-    // if(srcImage->height <= 0 || srcImage->width <= 0 || signature[0] != 'B' || signature[1] != 'M'  || ( bits_per_pixel !=24 && bits_per_pixel !=8 ) )
-    // {
-    //         cout << "ERROR in BMP read: The input file is not in standard BMP format" << endl;
-    //         return;
-    // }
-
-    srcImage = (I2D*)img2;
-
-    // if(srcImage->height <= 0 || srcImage->width <= 0 || signature[0] != 'B' || signature[1] != 'M'  || ( bits_per_pixel !=24 && bits_per_pixel !=8 ) )
-    // {
-    //     cout << "ERROR in BMP read: The input file is not in standard BMP format" << endl;
-    //     return;
-    // }
-
-    imleft  = (I2D *) img1;
-    imright = (I2D *) img2;
-
-    rows = imleft->height;
-    cols = imleft->width;
+        if(srcImage->height <= 0 || srcImage->width <= 0 || signature[0] != 'B' || signature[1] != 'M'  || ( bits_per_pixel !=24 && bits_per_pixel !=8 ) )
+        {
+                cout << "ERROR in BMP read: The input file is not in standard BMP format" << endl;
+                return 0;
+        }
 
 
-    (void)SHIFT;
-    (void)WIN_SZ;
+        srcImage = (I2D*)img2;
 
-    startCycles = TSC::time_stamp();
+        if(srcImage->height <= 0 || srcImage->width <= 0 || signature[0] != 'B' || signature[1] != 'M'  || ( bits_per_pixel !=24 && bits_per_pixel !=8 ) )
+        {
+            cout << "ERROR in BMP read: The input file is not in standard BMP format" << endl;
+            return 0;
+        }
 
-    retDisparity = getDisparity(imleft, imright, WIN_SZ, SHIFT);
 
-    endCycles = TSC::time_stamp();
 
-    diff += endCycles - startCycles;
+        imleft  = (I2D *) img1;
+        imright = (I2D *) img2;
 
+
+        rows = imleft->height;
+        cols = imleft->width;
+
+    #ifdef test
+        WIN_SZ = 2;
+        SHIFT = 1;
+    #endif
+    #ifdef sim_fast
+        WIN_SZ = 4;
+        SHIFT = 4;
+    #endif
+    #ifdef sim
+        WIN_SZ = 4;
+        SHIFT = 8;
+    #endif
+
+        (void)SHIFT;
+        (void)WIN_SZ;
+
+        startCycles = TSC::time_stamp();
+
+        retDisparity = getDisparity(imleft, imright, WIN_SZ, SHIFT);
+        endCycles = TSC::time_stamp();
+
+        unsigned long long diff = endCycles - startCycles;
+
+        cout << "Elapsed " << (diff* 1000000)/TSC::frequency() << "usec, Cycles" << diff << endl;
+
+    }
+
+    return 0;
 }
+
+/******************************************************************************
+ *  Main
+ *****************************************************************************/
 
 int main(void)
 {
-    Thread * t = new RT_Thread(&FuncTask1, DEADLINE, PERIOD, WCET, Periodic_Thread::NOW, MAX_EXECS);
+    // p,d,c,act,t,cpu
+    int CPU = 0;
+    Thread *t = new Periodic_Thread(RTConf(PERIOD, DEADLINE, WCET, 0, MAX_EXECS, CPU, Thread::READY,
+            Thread::Criterion((Microsecond) PERIOD, DEADLINE,
+            WCET, 0)), &FuncTask1);
+
     cout << "Disparity Periodic: All TASKs created with result (>0 is OK): " << t << endl;
 
     t->join();
 
-    cout << "Disparity Periodic | Returned from application main" << endl;
-    cout << "Elapsed " << Convert::count2us<Hertz, TSC::Time_Stamp, Time_Stamp>(TSC::frequency(), diff/MAX_EXECS) << "us, Cycles " << diff << endl;
+    cout << "Disparity Periodic | Returned from application main" << endl; 
 
     delete t;
 

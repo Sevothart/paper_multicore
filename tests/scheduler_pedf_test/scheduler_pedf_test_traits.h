@@ -19,7 +19,7 @@ template<> struct Traits<Build>: public Traits_Tokens
 
     // Default flags
     static const bool enabled = true;
-    static const bool monitored = false;
+    static const bool monitored = true;
     static const bool debugged = true;
     static const bool hysterically_debugged = false;
 
@@ -50,6 +50,10 @@ template<> struct Traits<Spin>: public Traits<Build>
 template<> struct Traits<Heaps>: public Traits<Build>
 {
     static const bool debugged = hysterically_debugged;
+};
+
+template<> struct Traits<Ciphers>: public Traits<Build>
+{
 };
 
 template<> struct Traits<Observers>: public Traits<Build>

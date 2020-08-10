@@ -56,12 +56,12 @@ int icmp_test()
                 cout << "  Data was not correctly received. It was " << sizeof(ICMP::Packet) << " bytes long, but " << received << " bytes were received!"<< endl;
 
             if(packet.type() == ICMP::ECHO) {
-                db<ICMP>(WRN) << "ICMP::update: echo request from " << from << endl;
+                db<IP>(WRN) << "ICMP::update: echo request from " << from << endl;
 
                 ICMP::Packet * reply = new (&packet) ICMP::Packet(ICMP::ECHO_REPLY, 0);
                 com->send(from, reply, sizeof(packet));
             } else if(packet.type() == ICMP::ECHO_REPLY)
-                db<ICMP>(WRN) << "ICMP::update: echo reply to " << from << endl;
+                db<IP>(WRN) << "ICMP::update: echo reply to " << from << endl;
         }
     }
 

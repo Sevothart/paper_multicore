@@ -171,7 +171,7 @@ namespace EPOS {
 #define __cortex_a53__
 #define __TSC_H                 __HEADER_ARCH(tsc)
 #define __PMU_H                 __HEADER_ARCH(pmu)
-#define __GPIO_H                __HEADER_MMOD(gpio)
+
 #define __UART_H                __HEADER_MACH(uart)
 #endif
 

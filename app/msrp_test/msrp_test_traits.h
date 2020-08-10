@@ -10,22 +10,23 @@ template<> struct Traits<Build>: public Traits_Tokens
 {
     // Basic configuration
     static const unsigned int MODE = LIBRARY;
-    static const unsigned int ARCHITECTURE = ARMv8;
-    static const unsigned int MACHINE = Cortex;
-    static const unsigned int MODEL = Raspberry_Pi3;
-    static const unsigned int CPUS = 1;
+    static const unsigned int ARCHITECTURE = IA32;
+    static const unsigned int MACHINE = PC;
+    static const unsigned int MODEL = Legacy_PC;
+    static const unsigned int CPUS = 8;
     static const unsigned int NODES = 1; // (> 1 => NETWORKING)
-    static const unsigned int EXPECTED_SIMULATION_TIME = 30; // s (0 => not simulated)
+    static const unsigned int EXPECTED_SIMULATION_TIME = 60; // s (0 => not simulated)
 
     // Default flags
     static const bool enabled = true;
-    static const bool monitored = true;
-    static const bool debugged = true;
+    static const bool monitored = false;
+    static const bool debugged = false;
     static const bool hysterically_debugged = false;
 
     // Default aspects
     typedef ALIST<> ASPECTS;
 };
+
 
 // Utilities
 template<> struct Traits<Debug>: public Traits<Build>
@@ -33,7 +34,7 @@ template<> struct Traits<Debug>: public Traits<Build>
     static const bool error   = true;
     static const bool warning = true;
     static const bool info    = false;
-    static const bool trace   = false;
+    static const bool trace   = true;
 };
 
 template<> struct Traits<Lists>: public Traits<Build>
@@ -49,6 +50,10 @@ template<> struct Traits<Spin>: public Traits<Build>
 template<> struct Traits<Heaps>: public Traits<Build>
 {
     static const bool debugged = hysterically_debugged;
+};
+
+template<> struct Traits<Ciphers>: public Traits<Build>
+{
 };
 
 template<> struct Traits<Observers>: public Traits<Build>
@@ -113,7 +118,7 @@ template<> struct Traits<System>: public Traits<Build>
     static const bool reboot = true;
 
     static const unsigned int STACK_SIZE = Traits<Machine>::STACK_SIZE;
-    static const unsigned int HEAP_SIZE = 64 * (Traits<Application>::MAX_THREADS + 1) * Traits<Application>::STACK_SIZE;
+    static const unsigned int HEAP_SIZE = (Traits<Application>::MAX_THREADS + 1) * Traits<Application>::STACK_SIZE;
 };
 
 template<> struct Traits<Task>: public Traits<Build>
@@ -128,7 +133,7 @@ template<> struct Traits<Thread>: public Traits<Build>
     static const bool simulate_capacity = false;
     static const bool trace_idle = hysterically_debugged;
 
-    typedef Scheduling_Criteria::RM Criterion;
+    typedef Scheduling_Criteria::PEDF Criterion;
     static const unsigned int QUANTUM = 10000; // us
 };
 
@@ -171,7 +176,6 @@ template<> struct Traits<ELP>: public Traits<Network>
 {
     typedef Ethernet NIC_Family;
     static constexpr unsigned int NICS[] = {0}; // relative to NIC_Family (i.e. Traits<Ethernet>::DEVICES[NICS[i]]
-    static const unsigned int UNITS = COUNTOF(NICS);
 
     static const bool enabled = Traits<Network>::enabled && (NETWORKS::Count<ELP>::Result > 0);
 };
@@ -180,7 +184,6 @@ template<> struct Traits<TSTP>: public Traits<Network>
 {
     typedef Ethernet NIC_Family;
     static constexpr unsigned int NICS[] = {0}; // relative to NIC_Family (i.e. Traits<Ethernet>::DEVICES[NICS[i]]
-    static const unsigned int UNITS = COUNTOF(NICS);
 
     static const unsigned int KEY_SIZE = 16;
     static const unsigned int RADIO_RANGE = 8000; // approximated radio range in centimeters
@@ -192,7 +195,6 @@ template<> struct Traits<IP>: public Traits<Network>
 {
     typedef Ethernet NIC_Family;
     static constexpr unsigned int NICS[] = {0};  // relative to NIC_Family (i.e. Traits<Ethernet>::DEVICES[NICS[i]]
-    static const unsigned int UNITS = COUNTOF(NICS);
 
     struct Default_Config {
         static const unsigned int  TYPE    = DHCP;
@@ -227,20 +229,14 @@ template<> struct Traits<Monitor>: public Traits<Build>
 {
     static const bool enabled = monitored;
 
-    static constexpr System_Event SYSTEM_EVENTS[]                 = {CPU_WCET, THREAD_WCET, CPU_FREQUENCY, DEADLINE_MISSES};
-    static constexpr unsigned int SYSTEM_EVENTS_FREQUENCIES[]     = {105, 105, 105, 105                };//{106, 106};// // in Hz
+    static constexpr System_Event SYSTEM_EVENTS[]                 = {ELAPSED_TIME, DEADLINE_MISSES, CPU_EXECUTION_TIME, THREAD_EXECUTION_TIME, RUNNING_THREAD};
+    static constexpr unsigned int SYSTEM_EVENTS_FREQUENCIES[]     = {           1,               1,                  1,                     1,              1}; // in Hz
 
-    static constexpr PMU_Event PMU_EVENTS[]                       = {BUS_ACCESS_ST_CA53_v8, DATA_WRITE_STALL_ST_BUFFER_FULL_CA53_v8, IMMEDIATE_BRANCHES_CA, L2D_WRITEBACK, CPU_CYCLES, L1_CACHE_HITS};
-    static constexpr unsigned int PMU_EVENTS_FREQUENCIES[]        = {105,105,105,105,105,105};//,106,106,106}; // in Hz
+    static constexpr PMU_Event PMU_EVENTS[]                       = {COMMITED_INSTRUCTIONS, BRANCHES, CACHE_MISSES};
+    static constexpr unsigned int PMU_EVENTS_FREQUENCIES[]        = {                    1,        1,            1}; // in Hz
 
-    static constexpr unsigned int TRANSDUCER_EVENTS[]             = {};
-    static constexpr unsigned int TRANSDUCER_EVENTS_FREQUENCIES[] = {}; // in Hz
-
-    // ANN
-    static const unsigned int MAX_TRAINS = 0;
-    static constexpr float TRAIN_MIN_ERROR = 0;
-    static constexpr int VARIANCE_RANGES[] = {0, 0};
-    static constexpr float VARIANCE_THRESHOLDS[] = {0, 0, 0};
+    static constexpr unsigned int TRANSDUCER_EVENTS[]             = {CPU_VOLTAGE, CPU_TEMPERATURE};
+    static constexpr unsigned int TRANSDUCER_EVENTS_FREQUENCIES[] = {          1,           1}; // in Hz
 };
 
 __END_SYS

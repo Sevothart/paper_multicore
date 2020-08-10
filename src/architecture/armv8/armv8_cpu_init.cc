@@ -23,10 +23,7 @@ void CPU::init()
         PMU::init();
 
     if(Traits<TSC>::enabled)
-    {
         TSC::init();
-        ARM_Timer::init();
-    }
 }
 
 __END_SYS

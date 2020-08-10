@@ -13,7 +13,7 @@
 
 __BEGIN_SYS
 
-class Machine: public Machine_Model
+class Machine: private Machine_Model
 {
     friend class Init_System;
     friend class First_Object;

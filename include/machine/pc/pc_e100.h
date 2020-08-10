@@ -521,13 +521,14 @@ protected:
 
 };
 
-class E100: public NIC<Ethernet>, private IF<Traits<E100>::qemu, i82559ER, i82559c>::Result
+
+class E100: public NIC<Ethernet>, private IF<(Traits<E100>::EXPECTED_SIMULATION_TIME > 0), i82559ER, i82559c>::Result
 {
     friend class Machine_Common;
 
 private:
-    // The E100 engine
-    typedef IF<Traits<E100>::qemu, i82559ER, i82559c>::Result Engine;
+    // The E100 engine (i82559c seems to be broken in QEMU)
+    typedef IF<(Traits<E100>::EXPECTED_SIMULATION_TIME > 0), i82559ER, i82559c>::Result Engine;
 
     // PCI ID
     static const unsigned int PCI_VENDOR_ID = Engine::PCI_VENDOR_ID;

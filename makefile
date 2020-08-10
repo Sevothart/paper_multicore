@@ -3,8 +3,6 @@
 include makedefs
 
 SUBDIRS	:= etc tools src app img
-VOLUME = RASPEPOS
-TEST_APP = mpcp_test
 
 all: FORCE
 ifndef APPLICATION
@@ -126,9 +124,5 @@ dist: veryclean
 		sed -e 's/^\/\//#/' $(ETC)/license.txt > $(ETC)/license.as
 		find $(TOP) -name "*.S" -print | xargs sed -i "1r $(ETC)/license.txt.as"
 		$(CLEAN) $(ETC)/license.as
-load:
-		/home/lucasm/gcc-arm-none-eabi/bin/arm-none-eabi-objcopy -O binary img/$(TEST_APP) img/kernel7.img
-		rm /media/$(USER)/$(VOLUME)/kernel7.img
-		mv img/kernel7.img /media/$(USER)/$(VOLUME)
-		umount /media/$(USER)/$(VOLUME)
+
 FORCE:

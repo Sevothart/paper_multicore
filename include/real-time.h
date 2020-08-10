@@ -8,7 +8,7 @@
 #include <utility/convert.h>
 #include <time.h>
 #include <process.h>
-#include <semaphore.h>
+#include <synchronizer.h>
 
 __BEGIN_SYS
 
@@ -83,10 +83,20 @@ public:
     Periodic_Thread(const Configuration & conf, int (* entry)(Tn ...), Tn ... an)
     : Thread(Thread::Configuration(SUSPENDED, (conf.criterion != NORMAL) ? conf.criterion : Criterion(conf.period), conf.color, conf.task, conf.stack_size), entry, an ...),
       _semaphore(0), _handler(&_semaphore, this), _alarm(conf.period, &_handler, conf.times) {
-        if (monitored) {
+        if(monitored) {
+            if(INARRAY(Traits<Monitor>::SYSTEM_EVENTS, Traits<Monitor>::THREAD_EXECUTION_TIME) || INARRAY(Traits<Monitor>::SYSTEM_EVENTS, Traits<Monitor>::CPU_EXECUTION_TIME)) {
+                TSC::Time_Stamp ts = TSC::time_stamp();
+                if(_statistics.last_hyperperiod[_link.rank().queue()] == 0) {
+                    _statistics.last_hyperperiod[_link.rank().queue()] = ts;
+                    _statistics.hyperperiod[_link.rank().queue()] = Convert::us2count<TSC::Time_Stamp, Microsecond>(TSC::frequency(), conf.period);
+                } else {
+                    _statistics.hyperperiod[_link.rank().queue()] = Math::lcm(_statistics.hyperperiod[_link.rank().queue()], Convert::us2count<TSC::Time_Stamp, Microsecond>(TSC::frequency(),conf.period));
+                }
+                _statistics.last_execution = ts;
+            }
             if(INARRAY(Traits<Monitor>::SYSTEM_EVENTS, Traits<Monitor>::DEADLINE_MISSES)) {
                 _statistics.times_p_count = conf.times;
-                _statistics.alarm_times = &_alarm; // will be reconfigured at entry, however the address is still the same
+                _statistics.alarm_times = &_alarm;
             }
         }
         if((conf.state == READY) || (conf.state == RUNNING)) {
@@ -101,12 +111,12 @@ public:
 
     static volatile bool wait_next() {
         Periodic_Thread * t = reinterpret_cast<Periodic_Thread *>(running());
-        if(monitored) {
-            TSC::Time_Stamp ts = TSC::time_stamp();
 
+        if(monitored) {
             if(INARRAY(Traits<Monitor>::SYSTEM_EVENTS, Traits<Monitor>::THREAD_EXECUTION_TIME)) {
+                TSC::Time_Stamp ts = TSC::time_stamp();
                 t->_statistics.execution_time += ts - t->_statistics.last_execution;
-                t->_statistics.last_execution = ts; // for deadline misses to account correctly (as they not necessarily inccur in a dispatch)
+                t->_statistics.last_execution = ts;
                 t->_statistics.average_execution_time += t->_statistics.execution_time;
                 t->_statistics.jobs++;
                 t->_statistics.execution_time = 0;
@@ -118,13 +128,8 @@ public:
 
         db<Thread>(TRC) << "Thread::wait_next(this=" << t << ",times=" << t->_alarm._times << ")" << endl;
 
-        if(t->_alarm._times) {
-            kout << "BEFORE P WAIT NEXT" << endl;
+        if(t->_alarm._times)
             t->_semaphore.p();
-            kout << "AFTER P WAIT NEXT" << endl;
-            if(INARRAY(Traits<Monitor>::SYSTEM_EVENTS, Traits<Monitor>::DEADLINE_MISSES))
-                t->_statistics.times_p_count--;
-        }
 
         return t->_alarm._times;
     }
@@ -140,37 +145,9 @@ class RT_Thread: public Periodic_Thread
 public:
     RT_Thread(void (* function)(), const Microsecond & deadline, const Microsecond & period = SAME, const Microsecond & capacity = UNKNOWN, const Microsecond & activation = NOW, int times = INFINITE, int cpu = ANY, const Color & color = WHITE, unsigned int stack_size = STACK_SIZE)
     : Periodic_Thread(Configuration(activation ? activation : period ? period : deadline, deadline, capacity, activation, activation ? 1 : times, cpu, SUSPENDED, Criterion(deadline, period ? period : deadline, capacity, cpu), color, 0, stack_size), &entry, this, function, activation, times) {
-        if(monitored) {
-            if(INARRAY(Traits<Monitor>::SYSTEM_EVENTS, Traits<Monitor>::THREAD_EXECUTION_TIME) || INARRAY(Traits<Monitor>::SYSTEM_EVENTS, Traits<Monitor>::CPU_EXECUTION_TIME) 
-                || INARRAY(Traits<Monitor>::SYSTEM_EVENTS, Traits<Monitor>::CPU_WCET) || INARRAY(Traits<Monitor>::SYSTEM_EVENTS, Traits<Monitor>::THREAD_WCET)) {
-                TSC::Time_Stamp ts = TSC::time_stamp();
-                if(Thread::_Statistics::last_hyperperiod[_link.rank().queue()] == 0) {
-                    Thread::_Statistics::last_hyperperiod[_link.rank().queue()] = ts+Convert::us2count<TSC::Time_Stamp, Time_Base>(TSC::frequency(), activation);
-                    db<Thread>(TRC) << "period=" << period << ",hyperperiod=" << Convert::us2count<TSC::Time_Stamp, Time_Base>(TSC::frequency(), period) << endl;
-                }
-                // GLOBAL Hyperperiod
-                if(Thread::_Statistics::hyperperiod[1] == 0) {
-                    Thread::_Statistics::hyperperiod[1] = Convert::us2count<TSC::Time_Stamp, Time_Base>(TSC::frequency(), period);
-                } else {
-                    Thread::_Statistics::hyperperiod[1] = Math::lcm(Thread::_Statistics::hyperperiod[1], Convert::us2count<TSC::Time_Stamp, Time_Base>(TSC::frequency(), period));
-                }
-                _statistics.wcet = Convert::us2count<TSC::Time_Stamp, Time_Base>(TSC::frequency(), (capacity*100)/period);
-                _statistics.last_execution = ts; // updated at dispatch
-                _statistics.period = period;
-                Thread::_Statistics::wcet_cpu[_link.rank().queue()] += _statistics.wcet;
-                db<Thread>(TRC) << "hyperperiod=" << Thread::_Statistics::hyperperiod[1] << ",period=" << period 
-                << ",WCET_c=" << Thread::_Statistics::wcet_cpu[_link.rank().queue()] << ",WCET=" << _statistics.wcet << endl;
-                if (times != (int) INFINITE)
-                    for (unsigned int i = 0; i < COUNTOF(Traits<Monitor>::PMU_EVENTS)+COUNTOF(Traits<Monitor>::SYSTEM_EVENTS); ++i)
-                    {
-                       _statistics.thread_monitoring[i] = new (SYSTEM) unsigned long long[times];
-                    }
-            }
-        }
-
         if(activation && Criterion::dynamic)
             // The priority of dynamic criteria will be adjusted to the correct value by the
-            // update() in the operator()() of Handler --> update does not change priority for Criterion::PERIODIC
+            // update() in the operator()() of Handler
             const_cast<Criterion &>(_link.rank())._priority = Criterion::PERIODIC;
         resume();
     }
@@ -181,12 +158,9 @@ private:
             // Wait for activation time
             t->_semaphore.p();
 
-            // Adjust alarm period
+            // Adjust alarm's period
             t->_alarm.~Alarm();
             new (&t->_alarm) Alarm(t->criterion().period(), &t->_handler, times);
-            t->_statistics.times_p_count = times;
-            if (Criterion::dynamic)
-                const_cast<Criterion &>(t->_link.rank())._priority = Alarm::elapsed() + Alarm::ticks(t->criterion().period()); // should be deadline
         }
 
         // Periodic execution loop

@@ -7,8 +7,6 @@
 #include <utility/list.h>
 #include <machine/timer.h>
 
-#include <utility/fann.h>
-
 __BEGIN_UTIL
 
 // All scheduling criteria, or disciplines, must define operator int() with
@@ -53,14 +51,12 @@ namespace Scheduling_Criteria
         static const bool preemptive = true;
         static const unsigned int QUEUES = 1;
 
-        // FANN lib usage
-        static const bool learning = false;
-
     public:
         template <typename ... Tn>
-        Priority(int p = NORMAL, Tn & ... an): _priority(p) {}
+        Priority(int p = NORMAL, Tn & ... an): preempt_level(0), _priority(p) {}
 
         operator const volatile int() const volatile { return _priority; }
+        void setPriority(int p){ _priority = p; }
 
         const Microsecond period() { return 0;}
         void period(const Microsecond & p) {}
@@ -68,9 +64,9 @@ namespace Scheduling_Criteria
         void update() {}
         unsigned int queue() const { return 0; }
 
-        static bool charge();
-        static bool collect();
-        static bool award(bool hyperperiod);
+        bool eligible() const {return true;}
+
+        volatile int preempt_level;
 
     protected:
         volatile int _priority;
@@ -156,13 +152,36 @@ namespace Scheduling_Criteria
     // Real-time Algorithms
     class RT_Common: public Priority
     {
+    public:
+        using Priority::setPriority;
+
+        static const bool srp_enabled = false;
+        static const bool msrp_enabled = true;
+
+        class Elector_Always {
+            public: static bool eligible(const RT_Common * task) { return true; }
+        };
+        class Elector_SRP {
+            public: static bool eligible(const RT_Common * task);
+        };
+        class Elector_MSRP {
+            public: static bool eligible(const RT_Common * task);
+        };
+
+        typedef IF< Traits<System>::multicore,
+        IF<msrp_enabled, Elector_MSRP, Elector_Always>::Result,
+        IF<srp_enabled, Elector_SRP, Elector_Always>::Result
+        >::Result Elector;
+
+        // typedef IF<msrp_enabled, Elector_MSRP, Elector_Always>::Result Elector;
+        // typedef IF<srp_enabled, Elector_SRP, Elector_Always>::Result Elector;
+        
+        bool eligible() const { return Elector::eligible(this); }
+
     protected:
         RT_Common(int p): Priority(p), _deadline(0), _period(0), _capacity(0) {} // Aperiodic
         RT_Common(int i, const Microsecond & d, const Microsecond & p, const Microsecond & c)
         : Priority(i), _deadline(d), _period(p), _capacity(c) {}
-
-    public:
-        const Microsecond period() { return _period;}
 
     public:
         Microsecond _deadline;
@@ -174,6 +193,7 @@ namespace Scheduling_Criteria
     class RM:public RT_Common
     {
     public:
+        using RT_Common::setPriority;
         static const bool timed = false;
         static const bool dynamic = false;
         static const bool preemptive = true;
@@ -188,6 +208,7 @@ namespace Scheduling_Criteria
     class PRM: public RM, public Variable_Queue
     {
     public:
+        using RM::setPriority;
         static const unsigned int QUEUES = Traits<Machine>::CPUS;
 
     public:
@@ -251,8 +272,6 @@ namespace Scheduling_Criteria
     {
     public:
         static const unsigned int QUEUES = Traits<Machine>::CPUS;
-        // FANN lib usage
-        static const bool learning = true;
 
     public:
         PEDF(int p = APERIODIC)
@@ -264,10 +283,6 @@ namespace Scheduling_Criteria
         using Variable_Queue::queue;
 
         static unsigned int current_queue() { return CPU::id(); }
-
-        static bool charge();
-        static bool collect();
-        static bool award(bool hyperperiod);
     };
 
     // Clustered Earliest Deadline First (multicore)
@@ -348,8 +363,21 @@ public:
     	// For threads, we assume this won't happen (see Init_First).
     	// But if you are unsure about your new use of the scheduler,
     	// please, pay the price of the extra "if" bellow.
-//    	return const_cast<T * volatile>((Base::chosen()) ? Base::chosen()->object() : 0);
+        // return const_cast<T * volatile>((Base::chosen()) ? Base::chosen()->object() : 0);
     	return const_cast<T * volatile>(Base::chosen()->object());
+    }
+
+    void sched_list()
+    {
+        Base::print_multilist();
+
+        // kout << "\tSCHEDULING_LIST @choosen[" << Base::chosen()->object() << "]" << endl;
+        // for( auto it = Base::begin(); it != Base::end(); it++ )
+        //     if( it == Base::begin() )
+        //         kout << "\t[" << it->object() << "]";
+        //     else
+        //         kout << " -> [" << it->object() << "]";
+        // kout << endl;
     }
 
     void insert(T * obj) {

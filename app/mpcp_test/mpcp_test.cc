@@ -2,53 +2,69 @@
 #include <time.h>
 #include <process.h>
 #include <real-time.h>
-#include <semaphore.h>
+#include <synchronizer.h>
+#include "inst-timer.h"
 
 using namespace EPOS;
 OStream cout;
-// Mutex entry;
-typedef Semaphore_PCP Semaphore_Type;
-int iterations = 5;
+typedef Semaphore_MPCP<true> Semaphore_Type;
 
-int recurso(Semaphore_Type * sem, int id)
+int recurso(Semaphore_Type* sem, int id, int iterations)
 {
-    cout << "START: " << id << endl;
-
     for(int i = 0; i < iterations; i++) {
         sem->p();
-        cout << "P_T: " << id << " it: " << i << endl;
-        Alarm::delay(5000);
-        cout << "V_T: " << id << " it: " << i << endl;
+
+        // cout << "P_T | Thread " << id << " at core " << CPU::id() << " in iteration " << i << endl;
+        Alarm::delay(1000);
+        // cout << "V_T | Thread " << id << " at core " << CPU::id() << " in iteration " << i << endl;
+        
         sem->v();
         Periodic_Thread::wait_next();
     }
-    
     return 0;
 }
 
+void thread_creator(int j)
+{
+    ITimer t;
+    int iterations = 2;
+
+    Semaphore_Type * sem = new Semaphore_Type( 0, 1 );
+    Periodic_Thread * threads[j];
+    //Configuration(const Microsecond & p, const Microsecond & d = SAME, const Microsecond & cap = UNKNOWN, const Microsecond & act = NOW, const unsigned int n = INFINITE, int cpu_id = ANY, const State & s = READY, const Criterion & c = NORMAL, const Color & a = WHITE, Task * t = 0, unsigned int ss = STACK_SIZE)
+    //PRM(const Microsecond & d, const Microsecond & p = SAME, const Microsecond & c = UNKNOWN, int cpu = ANY)
+    for(int i = 0; i < j; i++) {
+        Periodic_Thread::Configuration config = Periodic_Thread::Configuration(50000, 50000, 1000, Periodic_Thread::NOW, iterations, i, Periodic_Thread::READY, Periodic_Thread::Criterion( 50000, 50000, 1000, i ));
+        threads[i] = new Periodic_Thread( config, &recurso, sem, i, iterations );
+    }
+
+    for(int i = 0; i < j; i++)
+        threads[i]->join();
+    
+    for(int i = 0; i < j; i++){
+        delete threads[i];
+    }
+    
+    t.printData();
+    t.cleanData();
+}
+
 int main() {
-    // entry.lock();
+    cout << "Starting Semaphore Wait benchmark test..." << endl;
 
-    cout << "Starting Semaphore_MPCP benchmark test..." << endl;
-    Semaphore_Type * sem = new Semaphore_Type(1000000);
+    int N_T = 8;
 
-    cout << "Creating threads..." << endl;
-    Periodic_Thread * t1 = new Periodic_Thread( Periodic_Thread::Configuration(1000000, 1000000, 5000, Periodic_Thread::NOW, iterations), &recurso, sem, 1);
-    Periodic_Thread * t2 = new Periodic_Thread( Periodic_Thread::Configuration(2000000, 2000000, 5000, Periodic_Thread::NOW, iterations), &recurso, sem, 2);
-    Periodic_Thread * t3 = new Periodic_Thread( Periodic_Thread::Configuration(3000000, 3000000, 5000, Periodic_Thread::NOW, iterations), &recurso, sem, 3);
+    for(int i = 1; i <= N_T; i++)
+    {
+        cout << "\n---- SEMAPHORE WITH " << i << " THREADS ----\n";
+        thread_creator(i);
+    }
 
-    // entry.unlock();
-
-    cout << "Joining threads..." << endl;
-    t1->join();
-    t2->join();
-    t3->join();
-
-    cout << "Deleting threads..." << endl;
-    delete t1;
-    delete t2;
-    delete t3;
-
-    cout << "Ending Semaphore_MPCP benchmark test..." << endl;
+    cout << "simulation ended" << endl;
+    /*while (1)
+    {
+        Alarm::delay(1000000);
+        cout << "simulation ended" << endl;
+    }*/
     return 0;
 }

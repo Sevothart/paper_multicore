@@ -26,7 +26,7 @@ template <> struct Traits<Machine>: public Traits<Machine_Common>
     static const unsigned int MEM_BASE          = 0x00000000;
     static const unsigned int VECTOR_TABLE      = 0x00008000; // Defined by uboot@QEMU
     static const unsigned int PAGE_TABLES       = 0x3eef0000; // 1006 MB
-    static const unsigned int MEM_TOP           = 0x3dffffff; // 1 GB - To be investigated
+    static const unsigned int MEM_TOP           = 0x3eeeffff; // 1 GB
     static const unsigned int BOOT_STACK        = 0x3eeefffc; // MEM_TOP - sizeof(int) - 1M for boot stacks
     // Logical Memory Map
     static const unsigned int BOOT              = NOT_USED;
@@ -94,7 +94,7 @@ template<> struct Traits<UART>: public Traits<Machine_Common>
 
 template<> struct Traits<GPIO>: public Traits<Machine_Common>
 {
-    static const unsigned int UNITS = 6;
+    static const unsigned int UNITS = 0;
     static const bool supports_power_up = false;
 };
 

@@ -89,7 +89,7 @@ UUID                    = $(shell cat /proc/sys/kernel/random/uuid | sed 's/-//g
 # Compiler prefixes
 ia32_COMP_PREFIX	:= /usr/bin/x86_64-linux-gnu-
 armv7_COMP_PREFIX	:= /usr/bin/arm-none-eabi-
-armv8_COMP_PREFIX	:= /home/lucasm/gcc-arm-none-eabi/bin/arm-none-eabi-
+armv8_COMP_PREFIX	:= /usr/bin/arm-none-eabi-
 avr8_COMP_PREFIX	:= /usr/local/avr/gcc-4.4.4/bin/avr-
 COMP_PREFIX		= $($(ARCH)_COMP_PREFIX)
 
@@ -180,8 +180,8 @@ atmega_CODE_NAME	:= .init
 atmega_DATA_NAME	:= .data
 atmega_IMG_SUFFIX	:= .hex
 
-MACH_CC_FLAGS           := $($(MACH)_CC_FLAGS) -O -nostdinc -Wno-builtin-declaration-mismatch -Wno-array-bounds
-MACH_CXX_FLAGS          := $($(MACH)_CC_FLAGS) -O -std=c++14 -nostdinc --no-exceptions --no-rtti --no-use-cxa-atexit --no-asynchronous-unwind-tables -fno-stack-protector -fdata-sections -ffunction-sections -Wall -Werror -Wno-builtin-declaration-mismatch -Wno-array-bounds -Wno-attribute-alias -Wno-placement-new -Wno-class-memaccess 
+MACH_CC_FLAGS           := $($(MACH)_CC_FLAGS) -O -nostdinc -fno-stack-protector -fno-pie -Wno-builtin-declaration-mismatch -Wno-array-bounds 
+MACH_CXX_FLAGS          := $($(MACH)_CC_FLAGS) -O -std=c++14 -nostdinc --no-exceptions --no-rtti --no-use-cxa-atexit --no-asynchronous-unwind-tables -fno-stack-protector -fno-pie -fdata-sections -ffunction-sections -Wall -Werror -Wno-builtin-declaration-mismatch -Wno-array-bounds -Wno-attribute-alias -Wno-placement-new -Wno-class-memaccess 
 MACH_AS_FLAGS           := $($(MACH)_AS_FLAGS)
 MACH_LD_FLAGS           := $($(MACH)_LD_FLAGS)
 MACH_CODE_NAME          := $($(MACH)_CODE_NAME)

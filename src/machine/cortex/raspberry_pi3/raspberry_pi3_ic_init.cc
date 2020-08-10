@@ -75,7 +75,7 @@ IC::Interrupt_Handler IC::_eoi_vector[INTS] = {
     0,
     0,
     0,
-    ARM_Timer::arm_eoi, // ARM TIMER INT
+    Timer::eoi, // ARM TIMER INT
     0,
     0,
     0,

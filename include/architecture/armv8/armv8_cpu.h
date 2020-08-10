@@ -12,19 +12,9 @@ class ARMv8_A: public ARMv7_A
 {
 protected:
     ARMv8_A() {};
-
-public:
-    static unsigned int cores() {
-        // Cortex A53 cannot execute "mrc p15, 4, r0, c15, c0, 0".
-        // The amount of cores booted is equal to the Traits value (defined at Raspberry_Pi3::pre_init::pre_init for instance, up to four)
-        return Traits<Build>::CPUS; 
-    }
-
-    // we need to redefine because we also redefined cores()
-    static void smp_barrier(unsigned long cores = cores()) { CPU_Common::smp_barrier<&finc>(cores, id()); }
 };
 
-class CPU: public ARMv8_A
+class CPU: private ARMv8_A
 {
     friend class Init_System;
 
@@ -33,12 +23,12 @@ private:
 
 public:
     // CPU Native Data Types
-    using Base::Reg8;
-    using Base::Reg16;
-    using Base::Reg32;
-    using Base::Reg64;
-    using Base::Log_Addr;
-    using Base::Phy_Addr;
+    using CPU_Common::Reg8;
+    using CPU_Common::Reg16;
+    using CPU_Common::Reg32;
+    using CPU_Common::Reg64;
+    using CPU_Common::Log_Addr;
+    using CPU_Common::Phy_Addr;
 
     // CPU Context
     class Context
@@ -89,38 +79,6 @@ public:
         Reg32 _r11;
         Reg32 _r12;
         Reg32 _lr;
-        /*Reg32 _s0;
-        Reg32 _s1;
-        Reg32 _s2;
-        Reg32 _s3;
-        Reg32 _s4;
-        Reg32 _s5;
-        Reg32 _s6;
-        Reg32 _s7;
-        Reg32 _s8;
-        Reg32 _s9;
-        Reg32 _s10;
-        Reg32 _s11;
-        Reg32 _s12;
-        Reg32 _s13;
-        Reg32 _s14;
-        Reg32 _s15;
-        Reg32 _s16;
-        Reg32 _s17;
-        Reg32 _s18;
-        Reg32 _s19;
-        Reg32 _s20;
-        Reg32 _s21;
-        Reg32 _s22;
-        Reg32 _s23;
-        Reg32 _s24;
-        Reg32 _s25;
-        Reg32 _s26;
-        Reg32 _s27;
-        Reg32 _s28;
-        Reg32 _s29;
-        Reg32 _s30;
-        Reg32 _s31;*/
         Reg32 _pc;
     };
 
@@ -139,10 +97,7 @@ public:
     static Hertz clock() { return _cpu_clock; }
     static Hertz bus_clock() { return _bus_clock; }
 
-    using Base::id;
-    using Base::cores;
     using Base::flags;
-    using Base::smp_barrier;
 
     using Base::int_enable;
     using Base::int_disable;
@@ -181,24 +136,24 @@ public:
     static int syscall(void * message);
     static void syscalled();
 
-    using Base::htole64;
-    using Base::htole32;
-    using Base::htole16;
-    using Base::letoh64;
-    using Base::letoh32;
-    using Base::letoh16;
+    using CPU_Common::htole64;
+    using CPU_Common::htole32;
+    using CPU_Common::htole16;
+    using CPU_Common::letoh64;
+    using CPU_Common::letoh32;
+    using CPU_Common::letoh16;
 
-    using Base::htobe64;
-    using Base::htobe32;
-    using Base::htobe16;
-    using Base::betoh64;
-    using Base::betoh32;
-    using Base::betoh16;
+    using CPU_Common::htobe64;
+    using CPU_Common::htobe32;
+    using CPU_Common::htobe16;
+    using CPU_Common::betoh64;
+    using CPU_Common::betoh32;
+    using CPU_Common::betoh16;
 
-    using Base::htonl;
-    using Base::htons;
-    using Base::ntohl;
-    using Base::ntohs;
+    using CPU_Common::htonl;
+    using CPU_Common::htons;
+    using CPU_Common::ntohl;
+    using CPU_Common::ntohs;
 
 private:
     template<typename Head, typename ... Tail>

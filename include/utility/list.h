@@ -1026,6 +1026,8 @@ public:
 
     Element * volatile & chosen() { return _chosen; }
 
+    bool head_eligible() { return Base::head()->object()->criterion().eligible(); }
+
     void insert(Element * e) {
         db<Lists>(TRC) << "Scheduling_List::insert(e=" << e
                        << ") => {p=" << (e ? e->prev() : (void *) -1)
@@ -1057,7 +1059,7 @@ public:
     Element * choose() {
         db<Lists>(TRC) << "Scheduling_List::choose()" << endl;
 
-        if(!empty()) {
+        if(!empty() && head_eligible()) {
             Base::insert(_chosen);
             _chosen = Base::remove_head();
         }
@@ -1068,7 +1070,7 @@ public:
     Element * choose_another() {
         db<Lists>(TRC) << "Scheduling_List::choose_another()" << endl;
 
-        if(!empty() && head()->rank() != R::IDLE) {
+        if(!empty() && head_eligible() && head()->rank() != R::IDLE) {
             Element * tmp = _chosen;
             _chosen = Base::remove_head();
             Base::insert(tmp);
@@ -1237,6 +1239,21 @@ public:
         for(unsigned int i = 0; i < Q; i++)
             s += _list[i].size();
         return s;
+    }
+    
+    void print_multilist()
+    {
+        for( int i = 0; i < Q; i++ )
+        {
+            kout << "[" << i << "] @choosen " << _list[i].chosen()->object() << endl;
+        }
+        for( int i = 0; i < Q; i++ )
+        {
+            kout << "[" << i << "] ";
+            for( auto it = _list[i].begin(); it != _list[i].end(); it++ )
+                kout << it->object() << " ";
+            kout << endl;
+        }
     }
 
     Element * head() { return _list[R::current_queue()].head(); }
