@@ -9,15 +9,16 @@ using namespace EPOS;
 OStream cout;
 typedef Semaphore_MPCP<true> Semaphore_Type;
 
-int recurso(Semaphore_Type* sem, int id, int iterations)
+int recurso(Semaphore_Type *sem, int id, int iterations)
 {
-    for(int i = 0; i < iterations; i++) {
+    for (int i = 0; i < iterations; i++)
+    {
         sem->p();
 
         // cout << "P_T | Thread " << id << " at core " << CPU::id() << " in iteration " << i << endl;
         Alarm::delay(1000);
         // cout << "V_T | Thread " << id << " at core " << CPU::id() << " in iteration " << i << endl;
-        
+
         sem->v();
         Periodic_Thread::wait_next();
     }
@@ -29,32 +30,37 @@ void thread_creator(int j)
     ITimer t;
     int iterations = 2;
 
-    Semaphore_Type * sem = new Semaphore_Type( 0, 1 );
-    Periodic_Thread * threads[j];
+    Semaphore_Type *sem = new Semaphore_Type(0, 1);
+    Periodic_Thread *threads[j];
     //Configuration(const Microsecond & p, const Microsecond & d = SAME, const Microsecond & cap = UNKNOWN, const Microsecond & act = NOW, const unsigned int n = INFINITE, int cpu_id = ANY, const State & s = READY, const Criterion & c = NORMAL, const Color & a = WHITE, Task * t = 0, unsigned int ss = STACK_SIZE)
     //PRM(const Microsecond & d, const Microsecond & p = SAME, const Microsecond & c = UNKNOWN, int cpu = ANY)
-    for(int i = 0; i < j; i++) {
-        Periodic_Thread::Configuration config = Periodic_Thread::Configuration(50000, 50000, 1000, Periodic_Thread::NOW, iterations, i, Periodic_Thread::READY, Periodic_Thread::Criterion( 50000, 50000, 1000, i ));
-        threads[i] = new Periodic_Thread( config, &recurso, sem, i, iterations );
+    for (int i = 0; i < j; i++)
+    {
+        Periodic_Thread::Configuration config = Periodic_Thread::Configuration(50000, 50000, 1000, Periodic_Thread::NOW, iterations, i, Periodic_Thread::READY, Periodic_Thread::Criterion(50000, 50000, 1000, i));
+        threads[i] = new Periodic_Thread(config, &recurso, sem, i, iterations);
     }
 
-    for(int i = 0; i < j; i++)
+    for (int i = 0; i < j; i++)
         threads[i]->join();
-    
-    for(int i = 0; i < j; i++){
+
+    for (int i = 0; i < j; i++)
+    {
         delete threads[i];
     }
-    
+
+    TSC::frequency();
+    t.timer.frequency();
     t.printData();
     t.cleanData();
 }
 
-int main() {
+int main()
+{
     cout << "Starting Semaphore Wait benchmark test..." << endl;
 
-    int N_T = 8;
+    int N_T = 2;
 
-    for(int i = 1; i <= N_T; i++)
+    for (int i = 1; i <= N_T; i++)
     {
         cout << "\n---- SEMAPHORE WITH " << i << " THREADS ----\n";
         thread_creator(i);

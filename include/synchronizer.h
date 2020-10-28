@@ -24,7 +24,6 @@ protected:
     // Thread operations
     void begin_atomic() { Thread::lock(); }
     void end_atomic() { Thread::unlock(); }
-
 };
 
 class Synchronizer_Common_Test : public Synchronizer_Base
@@ -41,7 +40,7 @@ protected:
     void wakeup_all() { Thread::wakeup_all(&_queue); }
 
 protected:
-        Queue _queue;
+    Queue _queue;
 };
 
 template<bool>
@@ -195,9 +194,18 @@ public:
     void v();
 };
 
-class Semaphore_Ceiling: protected Semaphore_RT<true> {
+template<bool T>
+class Semaphore_Ceiling: protected Semaphore_RT<T> {
+private:
+    typedef Semaphore_RT<T> Base;
+protected:
+    typedef int Priority_t;
+    //using Base::Priority_t;
+    using Base::begin_atomic;
+    using Base::end_atomic;
 public:
-    Semaphore_Ceiling(Priority_t ceiling, int value = 1) : Semaphore_RT(value), _ceiling(ceiling) {}
+    Semaphore_Ceiling(){}
+    Semaphore_Ceiling(Priority_t ceiling, int value = 1) : Semaphore_RT<T>(value), _ceiling(ceiling) {}
     
     Priority_t ceiling() { return _ceiling; }
     void ceiling(Priority_t ceiling) {_ceiling = ceiling;}
@@ -207,7 +215,7 @@ private:
 };
 
 //Semaphore for Immediate Priority Ceiling Protocol 
-class Semaphore_IPCP: protected Semaphore_Ceiling {
+class Semaphore_IPCP: protected Semaphore_Ceiling<true> {
 public:
     Semaphore_IPCP(Priority_t ceiling, int value = 1): Semaphore_Ceiling(ceiling, value) {}
     
@@ -216,7 +224,7 @@ public:
 };
 
 //Semaphore for Priority Ceiling Protocol (classic)
-class Semaphore_PCP: protected Semaphore_Ceiling {
+class Semaphore_PCP: protected Semaphore_Ceiling<true> {
 public:
     Semaphore_PCP(Priority_t ceiling, int value = 1): Semaphore_Ceiling(ceiling, value) {}
     
@@ -225,10 +233,10 @@ public:
 };
 
 //Semaphore for Stack Resource Police
-template<bool T>
-class Semaphore_SRP: protected Semaphore_RT<T> {
+template<bool T = true>
+class Semaphore_SRP: protected Semaphore_Ceiling<T> {
 private:
-    typedef Semaphore_RT<T> Base;
+    typedef Semaphore_Ceiling<T> Base;
 protected:
     using Base::begin_atomic;
     using Base::end_atomic;
@@ -238,9 +246,9 @@ public:
     static const int MAX_RESOURCES = 8;
     static const int DEFAULT_CEILING = -2147483647; // minimum 32-bit integer
 
-    Semaphore_SRP() { }
+    Semaphore_SRP() {}
 
-    Semaphore_SRP(Thread ** tasks, int * levels ,int n_tasks, int value = 1): Semaphore_RT<T>(value) {   
+    Semaphore_SRP(Thread ** tasks, int * levels ,int n_tasks, int value = 1): Semaphore_Ceiling<T>(value) {   
         
         for(int i = 0; i < n_tasks; i++) {
             _tasks[i] = tasks[i];
@@ -325,10 +333,10 @@ private:
     T represents if MSRP is local or global section
     Q represents if MSRP is using FIFO or RankedQueue
 */
-template<bool T, bool Q>
-class Semaphore_MSRP : protected Semaphore_SRP<Q> {
+template<bool T>
+class Semaphore_MSRP : protected Semaphore_SRP<!T> {
 private:
-    typedef Semaphore_SRP<Q> Base;
+    typedef Semaphore_SRP<!T> Base;
     using Base::begin_atomic;
     using Base::end_atomic;
     using Base::_tasks;
@@ -337,21 +345,19 @@ private:
     using Base::_nr;
 public:
 
-    Semaphore_MSRP(Thread ** tasks, int * levels , int n_tasks, int value = 1)
-    : Base(tasks, levels, n_tasks, value) {}
+    Semaphore_MSRP(Thread ** tasks, int * levels , int n_tasks, int value = 1): Base(tasks, levels, n_tasks, value) {}
     
-    void p() { Base::p(); }
-    void v() { Base::v(); }
+    void p() { kout << "using base p\n"; Base::p(); }
+    void v() { kout << "using base v\n"; Base::v(); }
 };
 
 /* Always that MSRP will be global, will use Semaphore_SRP<false> no matter what */
 template<>
-class Semaphore_MSRP<true, false>: protected Semaphore_SRP<false> {
+class Semaphore_MSRP<true>: protected Semaphore_SRP<false> {
 private:
     typedef Semaphore_SRP<false> Base;
 public:
-    Semaphore_MSRP(Thread ** tasks, int * levels , int n_tasks, int value = 1) : Semaphore_SRP<false>()
-    {
+    Semaphore_MSRP(Thread ** tasks, int * levels, int n_tasks, int value = 1) : Semaphore_SRP<false>() {
         for(int i = 0; i < n_tasks; i++) {
             _tasks[i] = tasks[i];
             _tasks[i]->criterion().preempt_level = levels[i];
@@ -377,7 +383,7 @@ public:
 protected:
     static const int _cpu = Traits<Build>::CPUS;
     static int _systemCeiling[_cpu];
-    static Semaphore_MSRP<true, false> * _globalResources[MAX_RESOURCES];
+    static Semaphore_MSRP<true> * _globalResources[MAX_RESOURCES];
     static int _nGR; /* Number of current global resources actives */
 
     int _globalCeiling[_cpu];

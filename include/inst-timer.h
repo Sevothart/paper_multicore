@@ -18,7 +18,7 @@ public:
     void printData();
     void cleanData();
 
-private:
+public:
     TSC timer;
     Time_Stamp _startTime;
 

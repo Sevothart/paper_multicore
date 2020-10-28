@@ -9,7 +9,7 @@ using namespace EPOS;
 OStream cout;
 
 Mutex entry;
-typedef Semaphore_MSRP<true, false> Semaphore_Type;
+typedef Semaphore_MSRP<false> Semaphore_Type;
 Semaphore_Type * sem;
 
 int recurso(int id, int iterations)
@@ -30,7 +30,7 @@ int recurso(int id, int iterations)
 void thread_creator(int j)
 {
     ITimer t;
-    int iterations = 1000;
+    int iterations = 2;
 
     int levels[j];
     for(int i = 0; i < j; i++)
@@ -58,7 +58,7 @@ void thread_creator(int j)
 int main() {
     cout << "Starting Semaphore Wait benchmark test..." << endl;
 
-    int N_T = 1;
+    int N_T = 2;
 
     for(int i = 1; i <= N_T; i++)
     {
@@ -66,11 +66,13 @@ int main() {
         thread_creator(i);
     }
 
+    /*
     cout << "simulation ended" << endl;
     while (1)
     {
         Alarm::delay(1000000);
         cout << "simulation ended" << endl;
     }
+    */
     return 0;
 }

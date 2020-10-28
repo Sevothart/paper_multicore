@@ -210,7 +210,6 @@ void Thread::pass()
     }
 }
 
-
 void Thread::suspend(bool locked)
 {
     if(!locked)

@@ -126,7 +126,7 @@ template<bool> class Semaphore_Template;
 class Semaphore_PCP;
 class Semaphore_IPCP;
 template<bool T> class Semaphore_MPCP;
-template<bool T, bool Q> class Semaphore_MSRP;
+template<bool T> class Semaphore_MSRP;
 class Condition;
 
 class Time;

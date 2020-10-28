@@ -238,9 +238,9 @@ void Semaphore_SRP<T>::p() {
 	begin_atomic();
 	Semaphore_RT<T>::p(true);
 
-	ITimer t;
+	//ITimer t;
 	updateCeiling();
-	t.stop("srp_p", this);
+	//t.stop("srp_p", this);
 	end_atomic();
 }
 
@@ -249,9 +249,9 @@ void Semaphore_SRP<T>::v() {
 	begin_atomic();
 	Semaphore_RT<T>::v(true);
 	
-	ITimer t;
+	//ITimer t;
 	updateCeiling();
-	t.stop("srp_v", this);
+	//t.stop("srp_v", this);
 
 	end_atomic();
 }
@@ -282,24 +282,17 @@ bool Scheduling_Criteria::RT_Common::Elector_SRP::eligible(const Scheduling_Crit
 
 bool Scheduling_Criteria::RT_Common::Elector_MSRP::eligible(const Scheduling_Criteria::RT_Common * criterion) {
 	/* Scheduler tries to choose idle or main threads */
-	ITimer t;
 	if( criterion->_priority == IDLE || criterion->_priority == MAIN )
-	{
-		t.stop("eli", Thread::self());
 		return true;
-	}
 	
 	/* Main or idle threads running */
 	if( Thread::self()->criterion().preempt_level == 0 )
-	{
-		t.stop("eli", Thread::self());
 		return true; 
-	}
-	t.stop("eli", Thread::self());
-	return (criterion->preempt_level > Semaphore_MSRP<true, false>::systemCeiling( criterion->queue() ) );
+
+	return (criterion->preempt_level > Semaphore_MSRP<true>::systemCeiling( criterion->queue() ) );
 }
 
-void Semaphore_MSRP<true, false>::p()
+void Semaphore_MSRP<true>::p()
 {
 	begin_atomic();
 	Semaphore_Template<false>::p(true);
@@ -310,7 +303,7 @@ void Semaphore_MSRP<true, false>::p()
 	end_atomic();
 }
 
-void Semaphore_MSRP<true, false>::v()
+void Semaphore_MSRP<true>::v()
 {
 	begin_atomic();
 	Semaphore_Template<false>::v(true);
@@ -321,8 +314,8 @@ void Semaphore_MSRP<true, false>::v()
 	end_atomic();
 }
 
-int Semaphore_MSRP<true, false>::_nGR = 0;
-int Semaphore_MSRP<true, false>::_systemCeiling[_cpu];
-Semaphore_MSRP<true, false>* Semaphore_MSRP<true, false>::_globalResources[MAX_RESOURCES];
+int Semaphore_MSRP<true>::_nGR = 0;
+int Semaphore_MSRP<true>::_systemCeiling[_cpu];
+Semaphore_MSRP<true>* Semaphore_MSRP<true>::_globalResources[MAX_RESOURCES];
 
 __END_SYS
