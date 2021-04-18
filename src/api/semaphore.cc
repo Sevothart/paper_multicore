@@ -63,8 +63,8 @@ void Semaphore_PIP::p() {
             owner()->setPriority( aux_current->priority() );
 		// t.stop("pip_p", this);
     }
-
-    Semaphore_RT::p(true);
+	Base::p(true);
+    //Semaphore_RT::p(true);
     end_atomic();
 }
 
@@ -87,7 +87,8 @@ void Semaphore_PIP::v() {
 			// t.stop("pip_v", this);
 		}
 	}
-	Semaphore_RT::v(true);
+	Base::v(true);
+	//Semaphore_RT<true, true>::v(true);
 	end_atomic();
 }
 
@@ -96,10 +97,9 @@ void Semaphore_IPCP::p() {
 	begin_atomic();
 	// ITimer t;
 
-	if(!owner()) {
+	if( !owner() ) {
     	owner( currentThread() );
-    	priority( owner()->priority() );
-  	  	owner()->setPriority( ceiling() );
+		toCeiling();
   	}
 
 	// t.stop("ipcp_p", this);
@@ -118,8 +118,7 @@ void Semaphore_IPCP::v() {
 
   	  	if(next) {
   	  	  	owner(next);
-  	  	  	priority( owner()->priority() );
-			owner()->setPriority( ceiling() );
+  	  	  	toCeiling();
 			// t.stop("ipcp_v", this);
   	  	}
   	  	else {
@@ -143,14 +142,14 @@ void Semaphore_PCP::p() {
 		// t.stop("pcp_p", this);
   	}
   	else {
-  	  	if(ceiling() < owner()->priority())
-			owner()->setPriority( ceiling() );
+		toCeiling();
 		// t.stop("pcp_p", this);
   	}
   	Semaphore_RT::p(true);
   	end_atomic();
 }
 
+// FIXME: Exatamente igual ao IPCP, is this wrong??
 void Semaphore_PCP::v() {
   	begin_atomic();
 	
@@ -162,9 +161,11 @@ void Semaphore_PCP::v() {
 
   	  	if(next) {
   	  	  	owner(next);
+			priority( owner()->priority() );
+			//toCeiling();
 
-  	  	  	priority( owner()->priority() );
-  	  	  	owner()->setPriority( ceiling() );
+  	  	  	// priority( owner()->priority() );
+  	  	  	// owner()->setPriority( ceiling() );
 			// t.stop("pcp_v", this);
   	  	}
   	  	else {
@@ -182,15 +183,15 @@ template<bool T>
 void Semaphore_MPCP<T>::p() {
 	begin_atomic();
 	// ITimer t;
-
 	if( !owner() ) {
 		owner( currentThread() );
-		priority( owner()->priority() );
-
-		if(T)
-			owner()->setPriority( toGlobalCeiling() );
-		else
-			owner()->setPriority( ceiling() );
+		toCeiling();
+		// priority( owner()->priority() );
+		kout << "Semaphore_MPCP<" << T << ">::p() -> owner priority: " << owner()->priority() << endl;
+		//if(T)
+			// owner()->setPriority( toGlobalCeiling() );
+		// else
+		// 	owner()->setPriority( ceiling() );
 	}
 
 	// t.stop("mpcp_p", this);
@@ -204,21 +205,25 @@ void Semaphore_MPCP<T>::v() {
 	
   	if(owner() == currentThread()) {
 		// ITimer t;
-
 		owner()->setPriority( priority() );
   	  	Thread * next = nextThread();
+		kout << "Semaphore_MPCP<" << T << ">::v() -> restore owner priority: " << owner()->priority() << endl;
 
   	  	if(next) {
+			kout << "Semaphore_MPCP<" << T << ">::v() -> there's a task waiting on the queue" << endl;
   	  	  	owner(next);
-  	  	  	priority( next->priority() );
+			toCeiling();
+			kout << "Semaphore_MPCP<" << T << ">::v() -> owner priority: " << owner()->priority() << endl;
+  	  	  	//priority( next->priority() );
 
-			if(T)
-				owner()->setPriority( toGlobalCeiling() );
-			else
-				owner()->setPriority( ceiling() );
+			// if(T)
+				//owner()->setPriority( toGlobalCeiling() );
+			// else
+			// 	owner()->setPriority( ceiling() );
 			// t.stop("mpcp_v", this);
   	  	}
   	  	else {
+			kout << "Semaphore_MPCP<" << T << ">::v() -> no more tasks waiting on the queue" << endl;
   	  	  	owner(0);
 			priority(0);
 			// t.stop("mpcp_v", this);
@@ -229,14 +234,13 @@ void Semaphore_MPCP<T>::v() {
 }
 
 template void Semaphore_MPCP<true>::p();
-template void Semaphore_MPCP<false>::p();
 template void Semaphore_MPCP<true>::v();
-template void Semaphore_MPCP<false>::v();
 
 template<bool T>
 void Semaphore_SRP<T>::p() {
 	begin_atomic();
-	Semaphore_RT<T>::p(true);
+	Base::p(true);
+	//Semaphore_RT<true, true>::p(true);
 
 	//ITimer t;
 	updateCeiling();
@@ -247,12 +251,12 @@ void Semaphore_SRP<T>::p() {
 template<bool T>
 void Semaphore_SRP<T>::v() {
 	begin_atomic();
-	Semaphore_RT<T>::v(true);
+	Base::v(true);
+	//Semaphore_RT<true, true>::v(true);
 	
 	//ITimer t;
 	updateCeiling();
 	//t.stop("srp_v", this);
-
 	end_atomic();
 }
 
@@ -261,12 +265,17 @@ template void Semaphore_SRP<false>::p();
 template void Semaphore_SRP<true>::v();
 template void Semaphore_SRP<false>::v();
 
-template<bool T>
-Semaphore_SRP<T>* Semaphore_SRP<T>::_resources[MAX_RESOURCES];
-template<bool T>
-int Semaphore_SRP<T>::_nr = 0;
-template<bool T>
-int Semaphore_SRP<T>::_system_ceiling = Semaphore_SRP<T>::DEFAULT_CEILING;
+template<bool T> Semaphore_SRP<T>* Semaphore_SRP<T>::_resources[MAX_RESOURCES];
+template Semaphore_SRP<true>* Semaphore_SRP<true>::_resources[MAX_RESOURCES];
+template Semaphore_SRP<false>* Semaphore_SRP<false>::_resources[MAX_RESOURCES];
+
+template<bool T> int Semaphore_SRP<T>::_nr = 0;
+template int Semaphore_SRP<true>::_nr;
+template int Semaphore_SRP<false>::_nr;
+
+template<bool T> int Semaphore_SRP<T>::_system_ceiling = Semaphore_SRP<T>::DEFAULT_CEILING;
+template int Semaphore_SRP<true>::_system_ceiling;
+template int Semaphore_SRP<false>::_system_ceiling;
 
 bool Scheduling_Criteria::RT_Common::Elector_SRP::eligible(const Scheduling_Criteria::RT_Common * criterion) {
 	/* Scheduler tries to choose idle or main threads */
@@ -274,7 +283,7 @@ bool Scheduling_Criteria::RT_Common::Elector_SRP::eligible(const Scheduling_Crit
 		return true;
 	
 	/* Main or idle threads running */
-	if( Thread::self()->criterion().preempt_level == 0 )
+	if( Thread::self()->preemptLevel() == 0 )
 		return true; 
 	
 	return criterion->preempt_level > Semaphore_SRP<true>::systemCeiling();
@@ -286,16 +295,19 @@ bool Scheduling_Criteria::RT_Common::Elector_MSRP::eligible(const Scheduling_Cri
 		return true;
 	
 	/* Main or idle threads running */
-	if( Thread::self()->criterion().preempt_level == 0 )
+	if( Thread::self()->preemptLevel() == 0 )
 		return true; 
 
-	return (criterion->preempt_level > Semaphore_MSRP<true>::systemCeiling( criterion->queue() ) );
+	kout << "Elector_MSRP::eligible(): preemptLevel: " << criterion->preempt_level << " < systemCeiling("
+		<< criterion->queue() << "): " << Semaphore_MSRP::systemCeiling( criterion->queue() ) << endl;
+	return (criterion->preempt_level > Semaphore_MSRP::systemCeiling( criterion->queue() ) );
 }
 
-void Semaphore_MSRP<true>::p()
+void Semaphore_MSRP::p()
 {
 	begin_atomic();
-	Semaphore_Template<false>::p(true);
+	Semaphore_RT<false, true>::p(true);
+	//Semaphore_Template<false>::p(true);
 
 	// ITimer t;
 	updateCeiling();
@@ -303,10 +315,11 @@ void Semaphore_MSRP<true>::p()
 	end_atomic();
 }
 
-void Semaphore_MSRP<true>::v()
+void Semaphore_MSRP::v()
 {
 	begin_atomic();
-	Semaphore_Template<false>::v(true);
+	Semaphore_RT<false, true>::v(true);
+	//Semaphore_Template<false>::v(true);
 
 	// ITimer t;
 	updateCeiling();
@@ -314,8 +327,8 @@ void Semaphore_MSRP<true>::v()
 	end_atomic();
 }
 
-int Semaphore_MSRP<true>::_nGR = 0;
-int Semaphore_MSRP<true>::_systemCeiling[_cpu];
-Semaphore_MSRP<true>* Semaphore_MSRP<true>::_globalResources[MAX_RESOURCES];
+int Semaphore_MSRP::_nGR = 0;
+int Semaphore_MSRP::_systemCeiling[_cpu];
+Semaphore_MSRP * Semaphore_MSRP::_globalResources[MAX_RESOURCES];
 
 __END_SYS
