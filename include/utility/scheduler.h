@@ -155,10 +155,6 @@ namespace Scheduling_Criteria
     public:
         using Priority::setPriority;
 
-        /* TODO: This should come from Traits */
-        static const bool srp_enabled = false;
-        static const bool msrp_enabled = false;
-
         class Elector_Always {
             public: static bool eligible(const RT_Common * task) { return true; }
         };
@@ -169,10 +165,9 @@ namespace Scheduling_Criteria
             public: static bool eligible(const RT_Common * task);
         };
 
-        typedef IF< Traits<System>::multicore, IF<msrp_enabled, Elector_MSRP, Elector_Always>::Result, IF<srp_enabled, Elector_SRP, Elector_Always>::Result>::Result Elector;
-
-        // typedef IF<msrp_enabled, Elector_MSRP, Elector_Always>::Result Elector;
-        // typedef IF<srp_enabled, Elector_SRP, Elector_Always>::Result Elector;
+        typedef IF< Traits<System>::multicore,
+            IF<Traits<Semaphore_MSRP>::msrp_enabled, Elector_MSRP, Elector_Always>::Result,
+            IF<Traits<Semaphore_SRP<true>>::srp_enabled, Elector_SRP, Elector_Always>::Result>::Result Elector;
         
         bool eligible() const { return Elector::eligible(this); }
 
