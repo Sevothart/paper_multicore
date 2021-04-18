@@ -154,6 +154,8 @@ public:
     void priority(const Criterion & p);
 
     int preemptLevel(){ return criterion().preempt_level; }
+    void preemptLevel(int p){ criterion().preempt_level = p; }
+
     void setPriority( int p )
     {
         lock();
