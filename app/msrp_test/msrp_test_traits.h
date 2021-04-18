@@ -13,7 +13,7 @@ template<> struct Traits<Build>: public Traits_Tokens
     static const unsigned int ARCHITECTURE = IA32;
     static const unsigned int MACHINE = PC;
     static const unsigned int MODEL = Legacy_PC;
-    static const unsigned int CPUS = 8;
+    static const unsigned int CPUS = 1;
     static const unsigned int NODES = 1; // (> 1 => NETWORKING)
     static const unsigned int EXPECTED_SIMULATION_TIME = 60; // s (0 => not simulated)
 
@@ -109,7 +109,7 @@ template<> struct Traits<System>: public Traits<Build>
     static const unsigned int mode = Traits<Build>::MODE;
     static const bool multithread = (Traits<Build>::CPUS > 1) || (Traits<Application>::MAX_THREADS > 1);
     static const bool multitask = (mode != Traits<Build>::LIBRARY);
-    static const bool multicore = (Traits<Build>::CPUS > 1) && multithread;
+    static const bool multicore = true;//(Traits<Build>::CPUS > 1) && multithread;
     static const bool multiheap = multitask || Traits<Scratchpad>::enabled;
 
     static const unsigned long LIFE_SPAN = 1 * YEAR; // s
@@ -133,7 +133,7 @@ template<> struct Traits<Thread>: public Traits<Build>
     static const bool simulate_capacity = false;
     static const bool trace_idle = hysterically_debugged;
 
-    typedef Scheduling_Criteria::PEDF Criterion;
+    typedef Scheduling_Criteria::EDF Criterion;
     static const unsigned int QUANTUM = 10000; // us
 };
 
@@ -149,7 +149,17 @@ template<> struct Traits<Synchronizer>: public Traits<Build>
 
 template<> struct Traits<Semaphore_MPCP<true>>: public Traits<Build>
 {
-    static const unsigned int highest_priority = 50;
+    static const int highest_priority = 50000;
+};
+
+template<> struct Traits<Semaphore_SRP<true>>: public Traits<Build>
+{
+    static const bool srp_enabled = false;
+};
+
+template<> struct Traits<Semaphore_MSRP>: public Traits<Build>
+{
+    static const bool msrp_enabled = true;
 };
 
 template<> struct Traits<Alarm>: public Traits<Build>

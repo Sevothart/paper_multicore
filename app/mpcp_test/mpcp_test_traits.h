@@ -13,7 +13,7 @@ template<> struct Traits<Build>: public Traits_Tokens
     static const unsigned int ARCHITECTURE = IA32;
     static const unsigned int MACHINE = PC;
     static const unsigned int MODEL = Legacy_PC;
-    static const unsigned int CPUS = 8;
+    static const unsigned int CPUS = 3;
     static const unsigned int NODES = 1; // (> 1 => NETWORKING)
     static const unsigned int EXPECTED_SIMULATION_TIME = 120; // s (0 => not simulated)
 
@@ -145,6 +145,21 @@ template<> struct Traits<Scheduler<Thread>>: public Traits<Build>
 template<> struct Traits<Synchronizer>: public Traits<Build>
 {
     static const bool enabled = Traits<System>::multithread;
+};
+
+template<> struct Traits<Semaphore_MPCP<true>>: public Traits<Build>
+{
+    static const int highest_priority = 50000;
+};
+
+template<> struct Traits<Semaphore_SRP<true>>: public Traits<Build>
+{
+    static const bool srp_enabled = true;
+};
+
+template<> struct Traits<Semaphore_MSRP>: public Traits<Build>
+{
+    static const bool msrp_enabled = false;
 };
 
 template<> struct Traits<Alarm>: public Traits<Build>
