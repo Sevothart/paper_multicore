@@ -122,11 +122,9 @@ template<bool> class Synchronizer_Common;
 class Synchronizer;
 class Mutex;
 class Semaphore;
-template<bool> class Semaphore_Template;
-class Semaphore_PCP;
-class Semaphore_IPCP;
 template<bool T> class Semaphore_MPCP;
-template<bool T> class Semaphore_MSRP;
+template<bool T> class Semaphore_SRP;
+class Semaphore_MSRP;
 class Condition;
 
 class Time;
