@@ -23,6 +23,7 @@ class Thread
     friend class Synchronizer_Common<true>;   // for lock() and sleep()
     friend class Synchronizer_Common<false>;   // for lock() and sleep()
     friend class Synchronizer_Common_Test;
+    // friend class Semaphore_MrsP;
     friend class Alarm;                 // for lock()
     friend class System;                // for init()
     friend class IC;                    // for link() for priority ceiling
@@ -34,6 +35,7 @@ protected:
     static const bool preemptive = Traits<Thread>::Criterion::preemptive;
     static const bool multitask = Traits<System>::multitask;
     static const bool reboot = Traits<System>::reboot;
+    static const bool mrspEnabled = Traits<Semaphore_MrsP>::mrsp_enabled;
 
     static const unsigned int QUANTUM = Traits<Thread>::QUANTUM;
     static const unsigned int STACK_SIZE = multitask ? Traits<System>::STACK_SIZE : Traits<Application>::STACK_SIZE;
@@ -175,6 +177,8 @@ public:
     static void exit(int status = 0);
 
     Criterion & criterion() { return const_cast<Criterion &>(_link.rank()); }
+public:
+    FIFO_Queue::Element * FIFO_link() { return &_link; }
 
 protected:
     void constructor_prologue(const Color & color, unsigned int stack_size);
@@ -194,9 +198,9 @@ protected:
         assert(_state == RUNNING);
         _link.rank(c);
     }
-
+public:
     static Thread * volatile running() { return _scheduler.chosen(); }
-
+public:
     static void lock() {
         CPU::int_disable();
         if(smp)
@@ -208,7 +212,7 @@ protected:
             _lock.release();
         CPU::int_enable();
     }
-
+protected:
     static volatile bool locked() { return (smp) ? _lock.taken() : CPU::int_disabled(); }
 
     static void sleep(Thread_Queue * q);
@@ -218,9 +222,10 @@ protected:
     static void sleep(FIFO_Queue * q);
     static void wakeup(FIFO_Queue * q);
     static void wakeup_all(FIFO_Queue * q);
-
+public:
     static void reschedule();
     static void reschedule(unsigned int cpu);
+protected:
     static void rescheduler(IC::Interrupt_Id interrupt);
     static void time_slicer(IC::Interrupt_Id interrupt);
 

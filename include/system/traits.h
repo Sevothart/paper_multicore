@@ -20,6 +20,7 @@ class Predictors;
 class Queues;
 class Random;
 class Spin;
+class Simple_Spin;
 class SREC;
 class Vectors;
 template<typename> class Scheduler;
@@ -125,6 +126,7 @@ class Semaphore;
 template<bool T> class Semaphore_MPCP;
 template<bool T> class Semaphore_SRP;
 class Semaphore_MSRP;
+class Semaphore_MrsP;
 class Condition;
 
 class Time;

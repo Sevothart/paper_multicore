@@ -109,6 +109,7 @@ namespace Scheduling_Criteria
 
     public:
         const volatile unsigned int & queue() const volatile { return _queue; }
+        //void queue(unsigned int q){ _queue = q; }
 
     protected:
         volatile unsigned int _queue;

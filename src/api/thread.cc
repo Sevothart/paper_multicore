@@ -121,50 +121,96 @@ Thread::~Thread()
 }
 
 
+// void Thread::priority(const Criterion & c)
+// {
+
+//     /*
+//     * Problem description
+//     * when changing the priority of a RUNNING Thread, the _scheduler.remove makes the thread be removed from the queue,
+//     * but when calling reschedule(), the thread set as the running thread is the running(), which is the scheduler.chosen()
+//     * this makes the dispatch to switch context with the wrong thread
+//     * the scenarios to pay attention are:
+//     * 1: Core 1 calls priority for a running thread "t0" on Core 2:
+//     *   1.1: t0's new priority does not change the running Core
+//     *   1.2: t0's new priority changes the running Core
+//     * 2: Core 1 calls priority for its own running thread
+//     */
+//     lock();
+
+//     db<Thread>(TRC) << "Thread::priority(this=" << this << ",prio=" << c << ")" << endl;
+
+// //    unsigned int old_cpu = _link.rank().queue();
+
+//     if(_state != RUNNING) { // reorder the scheduling queue
+//         _scheduler.remove(this);
+//         _link.rank(c); //setPriority()
+//         _scheduler.insert(this);
+//     } else
+//         _link.rank(c); //setPriority()
+
+//     unsigned int new_cpu = _link.rank().queue();
+
+//     if(preemptive) {
+// //        if(old_cpu != CPU::id()) {
+// //            reschedule(old_cpu);
+//             if(smp) {
+//                 lock();
+//                 reschedule(new_cpu);
+//             }
+// //        } else if(new_cpu != CPU::id()) {
+// //            reschedule(new_cpu);
+// //            if(smp) {
+// //                lock();
+// //                reschedule(old_cpu);
+// //            }
+// //        } else
+// //            reschedule();
+//     }
+
+//     unlock();
+// }
+
 void Thread::priority(const Criterion & c)
 {
-
-    /*
-    * Problem description
-    * when changing the priority of a RUNNING Thread, the _scheduler.remove makes the thread be removed from the queue,
-    * but when calling reschedule(), the thread set as the running thread is the running(), which is the scheduler.chosen()
-    * this makes the dispatch to switch context with the wrong thread
-    * the scenarios to pay attention are:
-    * 1: Core 1 calls priority for a running thread "t0" on Core 2:
-    *   1.1: t0's new priority does not change the running Core
-    *   1.2: t0's new priority changes the running Core
-    * 2: Core 1 calls priority for its own running thread
-    */
     lock();
+
+    // remover do sched
+    // mudar estado
+    // reschedule new_cpu
+    // reschedule current_cpu
 
     db<Thread>(TRC) << "Thread::priority(this=" << this << ",prio=" << c << ")" << endl;
 
-//    unsigned int old_cpu = _link.rank().queue();
+    unsigned int old_cpu = _link.rank().queue();
+    unsigned int new_cpu = c.queue();
+
+    Thread* prev = running();
+    Thread* next = nullptr;
 
     if(_state != RUNNING) { // reorder the scheduling queue
         _scheduler.remove(this);
-        _link.rank(c); //setPriority()
+        _link.rank(c);
         _scheduler.insert(this);
-    } else
-        _link.rank(c); //setPriority()
+    } else {
+        next = _scheduler.choose_another();
+        kout << "THREAD::PRIORITY: @prev " << prev << ", @next " << next << endl;
+        _scheduler.remove(this);
+        this->_state = Thread::State::READY;
 
-    unsigned int new_cpu = _link.rank().queue();
+        kout << "old: " << old_cpu << ", new: " << new_cpu << ", CPU: " << CPU::id() << endl;
+        _link.rank(c);
+        _scheduler.insert(prev);
+        dispatch(prev, next);
+    }
 
     if(preemptive) {
-//        if(old_cpu != CPU::id()) {
-//            reschedule(old_cpu);
-            if(smp) {
-                lock();
-                reschedule(new_cpu);
+    	if(smp) {
+            if(new_cpu != CPU::id())
+            {
+    	        reschedule(new_cpu);
             }
-//        } else if(new_cpu != CPU::id()) {
-//            reschedule(new_cpu);
-//            if(smp) {
-//                lock();
-//                reschedule(old_cpu);
-//            }
-//        } else
-//            reschedule();
+    	} else
+    	    reschedule();
     }
 
     unlock();
@@ -429,8 +475,28 @@ void Thread::reschedule()
 
     Thread * prev = running();
     Thread * next = _scheduler.choose();
+    db<Thread>(TRC) << "Thread::reschedule(), prev=" << prev << ", next=" << next << endl;
 
+    // bool preempted = false;
+    // if( mrspEnabled )
+    // {
+    //     // preempted = Semaphore_MrsP::ownerMigrated(prev, next);
+    // }
     dispatch(prev, next);
+    
+    // if(preempted)
+    // {
+    //     lock();
+    //     kout << "@owner " << prev << " preempted by " << next << ".\n";
+    //     kout << "Moving @owner from " << prev->criterion().queue() << " to " << Semaphore_MrsP::mrspHelperCPU() << endl;
+
+    //     Criterion c = Periodic_Thread::Criterion(   Semaphore_MrsP::mrspOwner()->priority(),
+    //                                                 Semaphore_MrsP::mrspOwner()->priority(), 1500, Semaphore_MrsP::mrspHelperCPU() );
+    //     prev->priority(c);
+    //     reschedule( Semaphore_MrsP::mrspHelperCPU() );
+        
+    //     unlock();
+    // }
 }
 
 
@@ -460,7 +526,6 @@ void Thread::time_slicer(IC::Interrupt_Id i)
 
     reschedule();
 }
-
 
 void Thread::dispatch(Thread * prev, Thread * next, bool charge)
 {
@@ -508,6 +573,10 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         Monitor::run();
     }
 
+        db<Thread>(TRC) << "Thread::dispatch(prev=" << prev << ",next=" << next << ")" << endl;
+    db<Thread>(INF) << "prev={" << prev << ",ctx=" << *prev->_context << "}" << endl;
+    db<Thread>(INF) << "next={" << next << ",ctx=" << *next->_context << "}" << endl;
+    
     if(prev != next) {
         if(prev->_state == RUNNING)
             prev->_state = READY;

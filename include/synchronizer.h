@@ -4,10 +4,10 @@
 #define __synchronizer_h
 
 //#include <architecture.h>
-#include <utility/spin.h>
+#include "utility/simple_spin.h"
 #include <utility/handler.h>
 #include <utility/queue.h>
-#include <process.h>
+// #include <process.h>
 
 __BEGIN_SYS
 
@@ -155,17 +155,23 @@ template<bool T, bool Q>
 class BaseLock {};
 
 template<>
-class BaseLock<true, false>: public Simple_Spin {
+class BaseLock<true, false>: public Simple_Spin, protected Synchronizer_Base {
+protected:
+    using Synchronizer_Base::begin_atomic;
+    using Synchronizer_Base::end_atomic;
 public:
-    BaseLock(): Simple_Spin() {}
+    BaseLock(int v): Simple_Spin() {}
     void p() { this->acquire(); }
     void v() { this->release(); }
 };
 
 template<>
-class BaseLock<false, false>: public Simple_Spin {
+class BaseLock<false, false>: public Simple_Spin, protected Synchronizer_Base {
+protected:
+    using Synchronizer_Base::begin_atomic;
+    using Synchronizer_Base::end_atomic;
 public:
-    BaseLock(): Simple_Spin() {}
+    BaseLock(int v): Simple_Spin() {}
     void p() { this->acquire(); }
     void v() { this->release(); }
 };
@@ -174,11 +180,9 @@ template<>
 class BaseLock<true, true>: public Semaphore_Template<true> {
 private:
     typedef Semaphore_Template<true> Base;
-    /*
 protected:
     using Base::begin_atomic;
     using Base::end_atomic;
-    */
 public:
     BaseLock(int v): Semaphore_Template<true>(v) {}
     void p( bool locked = false ) { Base::p(locked); }
@@ -189,6 +193,9 @@ template<>
 class BaseLock<false, true>: public Semaphore_Template<false> {
 private:
     typedef Semaphore_Template<false> Base;
+protected:
+    using Base::begin_atomic;
+    using Base::end_atomic;
 public:
     BaseLock(int v): Semaphore_Template<false>(v) {}
     void p( bool locked = false ) { Base::p(locked); }
@@ -199,8 +206,15 @@ template<bool T, bool Q>
 class Semaphore_RT: public BaseLock<T, Q> {
 private:
     typedef BaseLock<T, Q> Base;
+protected:
+    using Base::begin_atomic;
+    using Base::end_atomic;
 public: 
-    Semaphore_RT(int v = 1): Base(v), _owner(0), _priority(0){}
+    Semaphore_RT(int v = 1): BaseLock<T, Q>(v), _owner(0)//, _priority(0)
+    {
+        for(unsigned int i = 0; i < Traits<Build>::CPUS; i++)
+            _priority[i] = 0;
+    }
     
     typedef Thread Thread_t;
     typedef int Priority_t;
@@ -209,8 +223,11 @@ public:
     Thread_t* owner() { return _owner; }
     void owner(Thread_t* own) { _owner = own; }
     
-    Priority_t priority() { return _priority; }
-    void priority(Priority_t priority) { _priority = priority; }
+    Priority_t priority() { return _priority[0]; }
+    void priority(Priority_t priority) { _priority[0] = priority; }
+
+    Priority_t priorityCPU(int cpu) { return _priority[cpu]; }
+    void priorityCPU(Priority_t priority, int cpu){ _priority[cpu] = priority; }
     
 protected:
     static Thread_t* currentThread() {
@@ -226,7 +243,7 @@ protected:
     
 private:
     Thread_t *_owner;
-    Priority_t _priority;
+    Priority_t *_priority;
 };
 
 //Semaphore for Priority Inheritance Protocol 
@@ -250,7 +267,13 @@ protected:
 public:
     Semaphore_Ceiling(){}
     Semaphore_Ceiling(Priority_t ceiling, int value = 1) : Semaphore_RT<T, Q>(value), _cpu(1) { _ceiling[0] = ceiling; }
-    Semaphore_Ceiling(int cpu, Priority_t * ceiling, int value = 1) : Semaphore_RT<T, Q>(value), _cpu(cpu), _ceiling(ceiling) {}
+    Semaphore_Ceiling(int cpu, Priority_t * ceiling, int value = 1) : Semaphore_RT<T, Q>(value), _cpu(cpu), _ceiling(ceiling)
+    {
+        kout << "Semaphore_Ceiling::Semaphore_Ceiling(): Number of CPUs: " << _cpu << endl;
+        kout << "Ceilings: " << endl;
+        for(int i = 0; i < _cpu; i++)
+            kout << "\t ceiling[" << i << "]: " << _ceiling[i] << endl;
+    }
     
     Priority_t ceiling( int cpu = 0 ) { return _ceiling[cpu]; }
     void ceiling(Priority_t ceiling, int cpu) { _ceiling[cpu] = ceiling; }
@@ -262,11 +285,13 @@ private:
 };
 
 template<bool T, bool Q>
-class Static_Ceiling: protected Semaphore_Ceiling<T, Q>{
+class Static_Ceiling: protected Semaphore_Ceiling<T, Q> {
 private:
     typedef Semaphore_Ceiling<T, Q> Base;
 protected:
     typedef int Priority_t;
+    using Base::begin_atomic;
+    using Base::end_atomic;
 public:
     Static_Ceiling(Priority_t ceiling, int value = 1): Semaphore_Ceiling<T, Q>(ceiling, value) {}
     Static_Ceiling(int cpu, Priority_t * ceiling, int value = 1) : Semaphore_Ceiling<T, Q>(cpu, ceiling, value) {}
@@ -440,6 +465,110 @@ public:
     void v() { Semaphore_IPCP::v(); }
 };
 
+class Semaphore_MrsP: protected Static_Ceiling<false, false> { // was F, F
+private:
+    typedef Static_Ceiling<false, false> Base;
+public:
+    Semaphore_MrsP(Priority_t * ceiling): Static_Ceiling(Traits<Build>::CPUS, ceiling)
+    {
+        // _originalCPU = -1;
+        // _mrsp_owner = nullptr;
+        // _helperTask = nullptr;
+        // for (unsigned int i = 0; i <= cpus; i++)
+        // {
+        //     _resourceAffinities[i] = nullptr;
+        //     _wasPreempted[i] = false;
+        // }
+    }
+
+    void p();
+    void v();
+
+//     static bool ownerMigrated(Thread* prev, Thread* next);
+//     static Thread* mrspOwner();
+//     static Thread* mrspHelper();
+//     static int mrspOriginalCPU();
+//     static int mrspHelperCPU();
+
+// private:
+    void toCeiling() {}
+
+//     void toCeiling(int cpu)
+//     {
+//         kout << "toCeiling() -> queue: " << cpu << ", p: " << currentThread()->priority() << "->" << ceiling( cpu ) << endl;
+//         priorityCPU( currentThread()->priority(), cpu );
+// 	    currentThread()->setPriority( ceiling( cpu ) );
+//     }
+
+//     void toGlobalCeiling(int cpu)
+//     {
+//         kout << "toGlobalCeiling():\n\tqueue " << owner()->criterion().queue() << "->" << cpu << endl;
+//         kout << "\tp: " << owner()->priority() << "->" << ceiling( cpu ) - 1 << endl;
+
+//         owner()->setPriority( ceiling(cpu) - 1 );
+//     }
+
+//     void printQueue(Thread** arr)
+//     {
+//         for(unsigned int i = 0; i < cpus; i++)
+//             kout << "[" << arr[i] << "] ";
+//     }
+
+//     static void updateHelper();
+
+//     void affinitiesInsert(Thread* t)
+//     {
+//         printQueue(_resourceAffinities);
+//         kout << " -> ";
+//         for(unsigned int i = 0; i < cpus; i++)
+//         {
+//             if( _resourceAffinities[i] == nullptr ) {
+//                 _resourceAffinities[i] = t;
+//                 break;
+//             }
+//         }
+//         printQueue(_resourceAffinities);
+//         kout << endl;
+//     }
+
+//     void affinitiesRemove()
+//     {
+//         printQueue(_resourceAffinities);
+//         kout << " -> ";
+//         bool flag = false;
+//         for(unsigned int i = 0; i < cpus; i++)
+//         {
+//             if( flag )
+//                 _resourceAffinities[i-1] = _resourceAffinities[i];
+
+//             if( _resourceAffinities[i] != nullptr ) {
+//                 _resourceAffinities[i] = nullptr;
+//                 flag = true;
+//             }
+//         }
+//         printQueue(_resourceAffinities);
+//         kout << endl;
+//     }
+
+//     void affinitiesClear()
+//     {
+//         for(unsigned int i = 0; i < cpus; i++)
+//             _resourceAffinities[i] = nullptr;
+//     }
+
+//     void clearPreemptions()
+//     {
+//         for(unsigned int i = 0; i < cpus; i++)
+//             _wasPreempted[i] = false;
+//     }
+// private:
+//     static const unsigned int cpus = Traits<Build>::CPUS;
+//     static int _originalCPU;
+//     static Thread * _mrsp_owner;
+//     static Thread * _helperTask;
+//     static bool _wasPreempted[ cpus ];
+//     static Thread * _resourceAffinities[ cpus ];  
+};
 
 class Semaphore_MSRP: protected Semaphore_SRP<false> {
 private:

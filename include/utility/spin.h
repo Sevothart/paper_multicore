@@ -4,7 +4,6 @@
 #define __spin_h
 
 #include <architecture.h>
-
 __BEGIN_UTIL
 
 // Forwarder to the running thread id
@@ -51,27 +50,27 @@ private:
 };
 
 // Flat Spin Lock
-class Simple_Spin
-{
-public:
-    Simple_Spin(): _locked(false) {}
+// class Simple_Spin
+// {
+// public:
+//     Simple_Spin(): _locked(false) {}
 
-    void acquire() {
-        while(CPU::tsl(_locked));
+//     void acquire() { 
+//         while( CPU::tsl(_locked) )
+        
+//         kout << "Spin::acquire[SPIN=" << this << "]()" << endl;
+//     }
 
-        db<Spin>(TRC) << "Spin::acquire[SPIN=" << this << "]()" << endl;
-    }
+//     void release() {
+// //        if(_locked)
+//             _locked = 0;
 
-    void release() {
-//        if(_locked)
-            _locked = 0;
+//         kout << "Spin::release[SPIN=" << this << "]()}" << endl;
+//     }
 
-        db<Spin>(TRC) << "Spin::release[SPIN=" << this << "]()}" << endl;
-    }
-
-private:
-    volatile bool _locked;
-};
+// private:
+//     volatile bool _locked;
+// };
 
 __END_UTIL
 

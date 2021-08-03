@@ -446,7 +446,6 @@ protected:
         _size--;
         return e;
     }
-
 private:
     unsigned int _size;
     Element * _head;
@@ -855,7 +854,7 @@ protected:
 
         return e;
     }
-
+    
     void print_head() {
         db<Lists>(INF) << "List[" << this << "]::head=" << head()
                        << " => {p=" << (head() ? head()->prev() : (void *) -1)
