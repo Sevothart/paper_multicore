@@ -1,133 +1,107 @@
 #include <utility/ostream.h>
 #include <time.h>
-// #include <process.h>
 #include <real-time.h>
 #include <synchronizer.h>
-// #include "inst-timer.h"
 
 using namespace EPOS;
-OStream cout;
 typedef Semaphore_MrsP Semaphore_Type;
-// typedef Semaphore_MPCP<true> Semaphore_Type;
+OStream cout;
+Chronometer chrono;
 
-int solo_resource(int id, int iterations)
+int resource_preempter(Semaphore_Type *sem, int iterations)
 {
+    Microsecond elapsed;
+
     for (int i = 0; i < iterations; i++)
     {
-        cout << "solo_resource::start_job | Thread " << id << " at " << CPU::id() << endl;
-        Alarm::delay(60000*(i+1));
-        cout << "solo_resource::finish_job | Thread " << id << " at " << CPU::id() << endl;
+        sem->p();|
+        elapsed = chrono.read() / 1000;
+        for(Microsecond end = elapsed + 1000; end > elapsed; elapsed = chrono.read() / 1000);
+        sem->v();
         Periodic_Thread::wait_next();
     }
     return 0;
 }
 
-int resource_preempted(Semaphore_Type *sem, int id, int iterations)
+/*
+    Description: Works (thread is able to migrate from core a to b)
+    when more than one thread are running in the same core in that instant.
+    If a thread does not have another thread in the same core to switch context
+    it seems to switch context with main thread and application finished (Why not idle?).
+*/
+int resource_priority(Semaphore_Type *sem, int iterations)
 {
-    Periodic_Thread::Criterion * c = new Periodic_Thread::Criterion( 99999, 99999, 1500*2, 1 );
+    Microsecond elapsed;
+    Periodic_Thread::Criterion c = Periodic_Thread::Criterion( 99999, 99999, 1500*2, 1 );
 
     for (int i = 0; i < iterations; i++)
     {
-        cout << "resource::try_access | Thread " << id << endl;
         sem->p();
-        cout << "resource::get_access() | Thread " << id << " at " << CPU::id() << endl;
+        Thread * self = Thread::self();
 
-        // Migration test
-        Alarm::delay(1000);
-        Periodic_Thread::Configuration solo_config = Periodic_Thread::Configuration(60000, 60000, 1500*2, Periodic_Thread::NOW, iterations, 0, Periodic_Thread::READY, Periodic_Thread::Criterion(60000, 60000, 1500, 0));
-        Periodic_Thread * solo_thread = new Periodic_Thread(solo_config, &solo_resource, 3, iterations);
+        cout << "resource::get_access() | Thread " << self << " at " << CPU::id()
+            << " and queue " << self->criterion().queue() << endl;
 
-        Thread * prev = Thread::self();
-        // prev->lock();
-        // if( Semaphore_MrsP::ownerMigrated( prev, solo_thread ) )
-        // {
-            kout << "@owner " << prev << " preempted by " << solo_thread << ".\n";
-            kout << "Moving @owner from " << prev->criterion().queue() << " to " << 1 << endl;
+        elapsed = chrono.read() / 1000;
+        for(Microsecond end = elapsed + 1000; end > elapsed; elapsed = chrono.read() / 1000);
 
-            
-            prev->priority(*c);
-        // }
-        // prev->unlock();
-        // Alarm::delay(1500*(i+1)); // COM ESTE DELAY, TRAVA SEM IR ADIANTE A PARTIR DAQUI
-
-        for(volatile int f = 0; f < 0xFFFFFF; f++ );
-
-        cout << "resource::finished_computation() | Thread " << id << " at "    //<< sem->owner()->criterion().current_queue()
-                                                                                << " " << CPU::id()
-                                                                                << " " << prev->criterion().queue() << endl;
-        sem->v();
-        cout << "resource::exited() | Thread " << id << endl;
         
-        Periodic_Thread::wait_next();
-        solo_thread->join();
-        delete solo_thread;
-    }
-    return 0;
-}
+        kout << "Moving @owner from " << self->criterion().queue() << " to " << c.queue() << endl;
+        self->priority(c);
 
-int resource_shared(Semaphore_Type *sem, int id, int iterations)
-{
-    for (int i = 0; i < iterations; i++)
-    {
-        cout << "shared_resource::try_access | Thread " << id << endl;
-        sem->p();
+        for(Microsecond end = elapsed + 1000; end > elapsed; elapsed = chrono.read() / 1000);
 
-        cout << "shared_resource::get_access() | Thread " << id << " at " << CPU::id() << endl;
-        Alarm::delay(1500*(i+1));
-        cout << "shared_resource::finished_computation() | Thread " << id << " at " << CPU::id() << endl;
+        cout << "resource::finished_computation() | Thread " << Thread::self() << " at id " << CPU::id()
+            << " and queue " << self->criterion().queue() << endl;
 
         sem->v();
-        cout << "shared_resource::exited() | Thread " << id << endl;
         Periodic_Thread::wait_next();
     }
     return 0;
 }
 
-void thread_creator(int j)
-{    
-    int iterations = 1;
-    int localCeiling[j];
-    for(int k = 0; k < j; k++)
-        localCeiling[k] = 100000*(k+1);
 
-    Semaphore_Type * sem = new Semaphore_Type(localCeiling);//Semaphore_Type(1);//
-    Periodic_Thread *threads[j];
+void thread_creator(int iterations)
+{
+    // setup variables
+    const int th_n{2};
+    Periodic_Thread * threads[th_n];
+    int prio[th_n] = {100000, 200000};//, 300000, 300000};
+    Semaphore_Type * sem = new Semaphore_MrsP(prio);
+    int core = 0;
 
-    for (int i = 0; i < j; i++)
-    {
-        Periodic_Thread::Configuration config = Periodic_Thread::Configuration(100000*(i+1), 100000*(i+1), 1500*(i+1), Periodic_Thread::NOW, iterations, i, Periodic_Thread::READY, Periodic_Thread::Criterion(100000*(i+1), 100000*(i+1), 1500*(i+1), i));
-        if(i == 0)
-            threads[i] = new Periodic_Thread(config, &resource_preempted, sem, i, iterations);
-        else
-            threads[i] = new Periodic_Thread(config, &resource_shared, sem, i, iterations);
+    Periodic_Thread::Configuration config = Periodic_Thread::Configuration(100000, 100000, 1500,
+        Periodic_Thread::NOW, iterations, core, Periodic_Thread::READY,
+        Periodic_Thread::Criterion(100000, 100000, 1500, core)
+    );
+    threads[0] = new Periodic_Thread(config, &resource_priority, sem, iterations);
+
+    config = Periodic_Thread::Configuration(200000, 200000, 1500,
+        Periodic_Thread::NOW, iterations, core, Periodic_Thread::READY,
+        Periodic_Thread::Criterion(200000, 200000, 1500, core)
+    );
+    threads[1] = new Periodic_Thread(config, &resource_priority, sem, iterations);
+
+    for(int i = 0; i < th_n; ++i)
+    {        
+        kout << "Thread " << threads[i] <<  " created at queue " << threads[i]->criterion().queue() << endl;
     }
 
-    for (int i = 0; i < j; i++)
+    chrono.start();
+    for (int i = 0; i < th_n; i++)
         threads[i]->join();
+    chrono.stop();
 
-    for (int i = 0; i < j; i++)
+    for (int i = 0; i < th_n; i++)
         delete threads[i];
-
     delete sem;
 }
 
 int main()
 {
-    cout << "Starting Semaphore Wait benchmark test..." << endl;
-
-    // int N_T = 2;
-
-    // for (int i = 1; i <= N_T; i++)
-    // {
-        cout << "\n---- SEMAPHORE WITH " << 2 << " THREADS ----\n";
-        thread_creator(2);
-    // }
+    const int iterations{1}; // number of threads
+    thread_creator(iterations);
 
     cout << "simulation ended" << endl;
-    /*while (1)
-    {
-        Alarm::delay(1000000);
-        cout << "simulation ended" << endl;
-    }*/
     return 0;
 }

@@ -8,6 +8,12 @@ typedef Semaphore_MrsP Semaphore_Type;
 OStream cout;
 Chronometer chrono;
 
+int resource_preempter()
+{
+    Microsecond elapsed = chrono.read() / 1000;
+    for(Microsecond end = elapsed + 1000; end > elapsed; elapsed = chrono.read() / 1000);
+}
+
 /*
     Description: nothing happens, threads that run this routine never change cores
     Calling reschedule (IC::IPI) just by itself doesnt work

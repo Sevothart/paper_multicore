@@ -192,14 +192,17 @@ void Thread::priority(const Criterion & c)
         _link.rank(c);
         _scheduler.insert(this);
     } else {
-        next = _scheduler.choose_another();
-        kout << "THREAD::PRIORITY: @prev " << prev << ", @next " << next << endl;
-        _scheduler.remove(this);
-        this->_state = Thread::State::READY;
+        next = _scheduler.choose_another(); // neves chooses idle task of the core
+        kout << "THREAD::CHOOSE_ANOTHER: @prev " << prev << ", @next " << next << endl;
+        if(next != prev)
+        {
+            _scheduler.remove(this);
+            this->_state = Thread::State::READY;
+            kout << "old: " << old_cpu << ", new: " << new_cpu << ", CPU: " << CPU::id() << endl;
+            _link.rank(c);
+            _scheduler.insert(prev);
+        }
 
-        kout << "old: " << old_cpu << ", new: " << new_cpu << ", CPU: " << CPU::id() << endl;
-        _link.rank(c);
-        _scheduler.insert(prev);
         dispatch(prev, next);
     }
 
@@ -207,10 +210,13 @@ void Thread::priority(const Criterion & c)
     	if(smp) {
             if(new_cpu != CPU::id())
             {
+                kout << "THREAD::RESCHEDULE_DIFFCORE()" << endl;
     	        reschedule(new_cpu);
             }
-    	} else
+    	} else {
+            kout << "THREAD::RESCHEDULE_SAMECORE()" << endl;
     	    reschedule();
+        }
     }
 
     unlock();
