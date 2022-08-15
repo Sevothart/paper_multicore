@@ -13,7 +13,7 @@ template<> struct Traits<Build>: public Traits_Tokens
     static const unsigned int ARCHITECTURE = IA32;
     static const unsigned int MACHINE = PC;
     static const unsigned int MODEL = Legacy_PC;
-    static const unsigned int CPUS = 2;
+    static const unsigned int CPUS = 8;
     static const unsigned int NODES = 1; // (> 1 => NETWORKING)
     static const unsigned int EXPECTED_SIMULATION_TIME = 120; // s (0 => not simulated)
 
@@ -133,7 +133,7 @@ template<> struct Traits<Thread>: public Traits<Build>
     static const bool simulate_capacity = false;
     static const bool trace_idle = hysterically_debugged;
 
-    typedef Scheduling_Criteria::PEDF Criterion;
+    typedef Scheduling_Criteria::PRM Criterion;
     static const unsigned int QUANTUM = 10000; // us
 };
 

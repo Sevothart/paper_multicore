@@ -225,6 +225,7 @@ protected:
 public:
     static void reschedule();
     static void reschedule(unsigned int cpu);
+    Context * volatile getContext() { return _context; }
 protected:
     static void rescheduler(IC::Interrupt_Id interrupt);
     static void time_slicer(IC::Interrupt_Id interrupt);

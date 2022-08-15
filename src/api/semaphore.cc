@@ -236,55 +236,56 @@ void Semaphore_MPCP<T>::v() {
 template void Semaphore_MPCP<true>::p();
 template void Semaphore_MPCP<true>::v();
 
-// Thread* Semaphore_MrsP::_mrsp_owner = nullptr;
-// Thread* Semaphore_MrsP::_helperTask = nullptr;
-// int Semaphore_MrsP::_originalCPU = -1;
-// bool Semaphore_MrsP::_wasPreempted[ cpus ];
-// Thread* Semaphore_MrsP::_resourceAffinities[ cpus ];
+Thread* Semaphore_MrsP::_mrsp_owner = nullptr;
+Thread* Semaphore_MrsP::_helperTask = nullptr;
+int Semaphore_MrsP::_originalCPU = -1;
+bool Semaphore_MrsP::_wasPreempted[ cpus ];
+Thread* Semaphore_MrsP::_resourceAffinities[ cpus ];
+CPU::Context * volatile Semaphore_MrsP::_cont = nullptr;
 
-// void Semaphore_MrsP::updateHelper()
-// {   
-// 	// owner is always at first position
-// 	for(unsigned int i = 1; i < cpus; i++)
-// 	{
-// 		Thread* t = _resourceAffinities[i];
-// 		if( t )
-// 		{
-// 			int helperCPU = t->criterion().queue();
-// 			if( !_wasPreempted[helperCPU] )
-// 			{
-// 				_helperTask = t;
-// 				return;
-// 			}                
-// 		}
-// 	}
-// 	_helperTask = nullptr;
-// }
+void Semaphore_MrsP::updateHelper()
+{   
+	// owner is always at first position
+	for(unsigned int i = 1; i < cpus; i++)
+	{
+		Thread* t = _resourceAffinities[i];
+		if( t )
+		{
+			int helperCPU = t->criterion().queue();
+			if( !_wasPreempted[helperCPU] )
+			{
+				_helperTask = t;
+				return;
+			}                
+		}
+	}
+	_helperTask = nullptr;
+}
 
 void Semaphore_MrsP::p() {
 	begin_atomic();
 
-	// /* the the current core and raise the task priority to the local ceiling */
-	// int cpu = currentThread()->criterion().queue();
+	/* the the current core and raise the task priority to the local ceiling */
+	int cpu = currentThread()->criterion().queue();
 	// kout << "Semaphore_MrsP::p(): Trying access from core: " << cpu << endl;
-	// toCeiling( cpu );
+	toCeiling( cpu );
 
-	// /* add the trying to access task to the resource affinities */
+	/* add the trying to access task to the resource affinities */
 	// kout << "Resource affinities insertion" << endl;
-	// affinitiesInsert( currentThread() );
+	affinitiesInsert( currentThread() );
 
-	// if( !owner() ) {
-	// 	//_tryingAccessAffinities = _resourceAffinities;
+	if( !owner() ) {
+		//_tryingAccessAffinities = _resourceAffinities;
 
-	// 	_originalCPU = cpu; // save original cpu
-	// 	// become the owner
-	// 	owner( currentThread() );
-	// 	_mrsp_owner = owner();
-	// 	toGlobalCeiling(cpu); // raise priority to the global ceiling
+		_originalCPU = cpu; // save original cpu
+		// become the owner
+		owner( currentThread() );
+		_mrsp_owner = owner();
+		toGlobalCeiling(cpu); // raise priority to the global ceiling
 	
-	// } else {
-	// 	updateHelper();
-	// }
+	} else {
+		updateHelper();
+	}
 
 	Base::p();
 	end_atomic();
@@ -292,85 +293,86 @@ void Semaphore_MrsP::p() {
 
 void Semaphore_MrsP::v() {
 	begin_atomic();
-	kout << "Semaphore_MrsP::v()" << endl;
 
-	// // remove the first affinity (owner)
-	// kout << "Resource affinities removal" << endl;
-	// affinitiesRemove();
+	// remove the first affinity (owner)
+	affinitiesRemove();
 
-	// // restore owner priority
-	// unsigned int cpu = currentThread()->criterion().queue();
-	// kout << "toPriority() -> queue: " << cpu << ", p: " << owner()->priority() << "->" << priorityCPU(cpu) << endl;
-	// owner()->setPriority( priorityCPU(cpu) );
+	// restore owner priority
+	unsigned int cpu = currentThread()->criterion().queue();
+	owner()->setPriority( priorityCPU(cpu) );
 
-	// // restore preemptions flags
-	// if( _mrsp_owner->criterion().queue() != (unsigned int)_originalCPU )
-	// {
-	// 	//migrate back
-	// } else {
-	// 	_wasPreempted[_originalCPU] = false;
-	// }
+	// restore preemptions flags
+	if( _mrsp_owner->criterion().queue() != (unsigned int)_originalCPU )
+	{
+		// migrate back
+		kout << "\tMIGRATE_BACK??\n";
+	} else {
+		_wasPreempted[_originalCPU] = false;
+	}
 
-	// // verify if there is a new owner
-	// Thread* next = _resourceAffinities[0];
-	// if(next != nullptr)
-	// {
-	// 	// save new owner cpu
-	// 	_originalCPU = next->criterion().queue();
-	// 	// become the owner
-	// 	owner(next);
-	// 	_mrsp_owner = owner();
-	// 	updateHelper();
-	// 	// save original local ceiling priority and raise it to the global ceiling
-	// 	priorityCPU( owner()->priority(), _originalCPU );
-	// 	toGlobalCeiling( _originalCPU );
-	// }
-	// else
-	// {
-	// 	_originalCPU = -1;
-	// 	_mrsp_owner = nullptr;
-	// 	_helperTask = nullptr;
-	// 	affinitiesClear();
-	// 	clearPreemptions();
-	// 	owner(0);
-	// 	priorityCPU(0, cpu);
-	// }
+	// verify if there is a new owner
+	Thread* next = _resourceAffinities[0];
+	if(next != nullptr)
+	{
+		// save new owner cpu
+		_originalCPU = next->criterion().queue();
+		// become the owner
+		owner(next);
+		_mrsp_owner = owner();
+		updateHelper();
+		// save original local ceiling priority and raise it to the global ceiling
+		priorityCPU( owner()->priority(), _originalCPU );
+		toGlobalCeiling( _originalCPU );
+	}
+	else
+	{
+		_originalCPU = -1;
+		_mrsp_owner = nullptr;
+		_helperTask = nullptr;
+		affinitiesClear();
+		clearPreemptions();
+		owner(0);
+		priorityCPU(0, cpu);
+	}
 	Base::v();	
 	end_atomic();
 }
 
-// bool Semaphore_MrsP::ownerMigrated(Thread* prev, Thread* next)
-// {
-// 	if( _mrsp_owner != nullptr && _helperTask != nullptr && prev == _mrsp_owner )
-// 	{
-// 		kout << endl << "======= THREAD MIGRATION ============" << endl;
-// 		kout << "@owner " << _mrsp_owner << " was preempted while at critical section" << endl;
-// 		kout << "@helper " << _helperTask << endl << endl;
+bool Semaphore_MrsP::ownerMigrated(Thread* prev, Thread* next)
+{
+	if( _mrsp_owner != nullptr && _helperTask != nullptr && prev == _mrsp_owner && prev != next )
+	{
+		kout << endl << "======= THREAD MIGRATION ============" << endl;
+		kout << "@owner " << _mrsp_owner << " was preempted while at critical section" << endl;
+		kout << "@preempter " << next << endl;
+		kout << "@helper " << _helperTask << endl << endl;
 
 		
-// 		unsigned int currentCPU = _mrsp_owner->criterion().queue();
+		unsigned int currentCPU = _mrsp_owner->criterion().queue();
 
-// 		// if the owner is at his original core
-// 		if( mrspOriginalCPU() == (int)currentCPU )
-// 			_wasPreempted[mrspOriginalCPU()] = true;
-// 		// if the owner is preempted while being helped, check for another helper
-// 		else
-// 		{
-// 			_wasPreempted[currentCPU] = true;
-// 			Semaphore_MrsP::updateHelper();
-// 			if(!_helperTask)
-// 				return false;
-// 		}
-// 		return true;
-// 	} else {
-// 		return false;
-// 	}
-// }
+		// if the owner is at his original core
+		if( mrspOriginalCPU() == (int)currentCPU )
+			_wasPreempted[mrspOriginalCPU()] = true;
+		// if the owner is preempted while being helped, check for another helper
+		else
+		{
+			_wasPreempted[currentCPU] = true;
+			Semaphore_MrsP::updateHelper();
+			if(!_helperTask)
+				return false;
+		}
+		// _cont = _helperTask->getContext(); // save current context
+		// _mrsp_owner->getContext()->load(); // continue to exe previous context
+		return true;
+	} else {
+		return false;
+	}
+}
 
-// Thread* Semaphore_MrsP::mrspOwner(){ return _mrsp_owner; }
-// Thread* Semaphore_MrsP::mrspHelper(){ return _helperTask; }
-// int Semaphore_MrsP::mrspOriginalCPU(){ return _originalCPU; }
-// int Semaphore_MrsP::mrspHelperCPU(){ return _helperTask->criterion().queue(); }
+Thread* Semaphore_MrsP::mrspOwner(){ return _mrsp_owner; }
+Thread* Semaphore_MrsP::mrspHelper(){ return _helperTask; }
+int Semaphore_MrsP::mrspOriginalCPU(){ return _originalCPU; }
+int Semaphore_MrsP::mrspHelperCPU(){ return _helperTask->criterion().queue(); }
 
 template<bool T>
 void Semaphore_SRP<T>::p() {

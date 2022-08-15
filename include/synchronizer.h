@@ -471,103 +471,105 @@ private:
 public:
     Semaphore_MrsP(Priority_t * ceiling): Static_Ceiling(Traits<Build>::CPUS, ceiling)
     {
-        // _originalCPU = -1;
-        // _mrsp_owner = nullptr;
-        // _helperTask = nullptr;
-        // for (unsigned int i = 0; i <= cpus; i++)
-        // {
-        //     _resourceAffinities[i] = nullptr;
-        //     _wasPreempted[i] = false;
-        // }
+        _originalCPU = -1;
+        _mrsp_owner = nullptr;
+        _helperTask = nullptr;
+        for (unsigned int i = 0; i <= cpus; i++)
+        {
+            _resourceAffinities[i] = nullptr;
+            _wasPreempted[i] = false;
+        }
     }
 
     void p();
     void v();
 
-//     static bool ownerMigrated(Thread* prev, Thread* next);
-//     static Thread* mrspOwner();
-//     static Thread* mrspHelper();
-//     static int mrspOriginalCPU();
-//     static int mrspHelperCPU();
+    static bool ownerMigrated(Thread* prev, Thread* next);
+    static Thread* mrspOwner();
+    static Thread* mrspHelper();
+    static int mrspOriginalCPU();
+    static int mrspHelperCPU();
 
-// private:
+private:
     void toCeiling() {}
 
-//     void toCeiling(int cpu)
-//     {
-//         kout << "toCeiling() -> queue: " << cpu << ", p: " << currentThread()->priority() << "->" << ceiling( cpu ) << endl;
-//         priorityCPU( currentThread()->priority(), cpu );
-// 	    currentThread()->setPriority( ceiling( cpu ) );
-//     }
+    void toCeiling(int cpu)
+    {
+        // kout << "toCeiling() -> queue: " << cpu << ", p: " << currentThread()->priority() << "->" << ceiling( cpu ) << endl;
+        priorityCPU( currentThread()->priority(), cpu );
+        currentThread()->setPriority( ceiling( cpu ) );
+    }
 
-//     void toGlobalCeiling(int cpu)
-//     {
-//         kout << "toGlobalCeiling():\n\tqueue " << owner()->criterion().queue() << "->" << cpu << endl;
-//         kout << "\tp: " << owner()->priority() << "->" << ceiling( cpu ) - 1 << endl;
+    void toGlobalCeiling(int cpu)
+    {
+        // kout << "toGlobalCeiling():\n\tqueue " << owner()->criterion().queue() << "->" << cpu << endl;
+        // kout << "\tp: " << owner()->priority() << "->" << ceiling( cpu ) - 1 << endl;
 
-//         owner()->setPriority( ceiling(cpu) - 1 );
-//     }
+        owner()->setPriority( ceiling(cpu) - 1 );
+    }
 
-//     void printQueue(Thread** arr)
-//     {
-//         for(unsigned int i = 0; i < cpus; i++)
-//             kout << "[" << arr[i] << "] ";
-//     }
+    void printQueue(Thread** arr)
+    {
+        for(unsigned int i = 0; i < cpus; i++)
+            kout << "[" << arr[i] << "] ";
+    }
 
-//     static void updateHelper();
+    static void updateHelper();
 
-//     void affinitiesInsert(Thread* t)
-//     {
-//         printQueue(_resourceAffinities);
-//         kout << " -> ";
-//         for(unsigned int i = 0; i < cpus; i++)
-//         {
-//             if( _resourceAffinities[i] == nullptr ) {
-//                 _resourceAffinities[i] = t;
-//                 break;
-//             }
-//         }
-//         printQueue(_resourceAffinities);
-//         kout << endl;
-//     }
+    void affinitiesInsert(Thread* t)
+    {
+        printQueue(_resourceAffinities);
+        kout << " -> ";
+        for(unsigned int i = 0; i < cpus; i++)
+        {
+            if( _resourceAffinities[i] == nullptr ) {
+                _resourceAffinities[i] = t;
+                break;
+            }
+        }
+        printQueue(_resourceAffinities);
+        kout << endl;
+    }
 
-//     void affinitiesRemove()
-//     {
-//         printQueue(_resourceAffinities);
-//         kout << " -> ";
-//         bool flag = false;
-//         for(unsigned int i = 0; i < cpus; i++)
-//         {
-//             if( flag )
-//                 _resourceAffinities[i-1] = _resourceAffinities[i];
+    void affinitiesRemove()
+    {
+        printQueue(_resourceAffinities);
+        kout << " -> ";
+        bool flag = false;
+        for(unsigned int i = 0; i < cpus; i++)
+        {
+            if( flag )
+                _resourceAffinities[i-1] = _resourceAffinities[i];
 
-//             if( _resourceAffinities[i] != nullptr ) {
-//                 _resourceAffinities[i] = nullptr;
-//                 flag = true;
-//             }
-//         }
-//         printQueue(_resourceAffinities);
-//         kout << endl;
-//     }
+            if( _resourceAffinities[i] != nullptr ) {
+                _resourceAffinities[i] = nullptr;
+                flag = true;
+            }
+        }
+        printQueue(_resourceAffinities);
+        kout << endl;
+    }
 
-//     void affinitiesClear()
-//     {
-//         for(unsigned int i = 0; i < cpus; i++)
-//             _resourceAffinities[i] = nullptr;
-//     }
+    void affinitiesClear()
+    {
+        for(unsigned int i = 0; i < cpus; i++)
+            _resourceAffinities[i] = nullptr;
+    }
 
-//     void clearPreemptions()
-//     {
-//         for(unsigned int i = 0; i < cpus; i++)
-//             _wasPreempted[i] = false;
-//     }
-// private:
-//     static const unsigned int cpus = Traits<Build>::CPUS;
-//     static int _originalCPU;
-//     static Thread * _mrsp_owner;
-//     static Thread * _helperTask;
-//     static bool _wasPreempted[ cpus ];
-//     static Thread * _resourceAffinities[ cpus ];  
+    void clearPreemptions()
+    {
+        for(unsigned int i = 0; i < cpus; i++)
+            _wasPreempted[i] = false;
+    }
+private:
+    static const unsigned int cpus = Traits<Build>::CPUS;
+    static int _originalCPU;
+    static Thread * _mrsp_owner;
+    static Thread * _helperTask;
+    static bool _wasPreempted[ cpus ];
+    static Thread * _resourceAffinities[ cpus ];
+    typedef CPU::Context Context;
+    static Context * volatile _cont;
 };
 
 class Semaphore_MSRP: protected Semaphore_SRP<false> {
